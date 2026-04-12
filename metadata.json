@@ -1,0 +1,5 @@
+{
+  "name": "LiveChord Pro",
+  "description": "Aplicativo de cifras musicais focado em performance ao vivo com transposição, auto-scroll e modo show.",
+  "requestFramePermissions": ["screen-wake-lock", "camera"]
+}
