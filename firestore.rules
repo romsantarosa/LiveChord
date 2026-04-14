@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: songs
+    // Fields:
+    //   - userId: string (required) - Owner UID
+    //   - title: string (required)
+    //   - artist: string (required)
+    //   - originalKey: string (required)
+    //   - currentKey: string (required)
+    //   - content: string (required)
+    //   - youtubeId: string (optional)
+    //   - fontSize: number (optional)
+    //   - autoScrollSpeed: number (optional)
+    //   - isFavorite: boolean (optional)
+    //   - bpm: number (optional)
+    //   - tags: list (optional)
+    //
+    // Collection: setlists
+    // Fields:
+    //   - userId: string (required) - Owner UID
+    //   - name: string (required)
+    //   - songIds: list (required)
+    //   - createdAt: number (required)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidSong(data) {
+      return data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.artist is string && data.artist.size() < 200 &&
+             data.content is string && data.content.size() < 50000;
+    }
+
+    function isValidSetlist(data) {
+      return data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.songIds is list && data.songIds.size() < 500;
+    }
+
+    match /songs/{songId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidSong(request.resource.data);
+      allow update: if isDocOwner() && isValidSong(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /setlists/{setlistId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidSetlist(request.resource.data);
+      allow update: if isDocOwner() && isValidSetlist(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+  }
+}

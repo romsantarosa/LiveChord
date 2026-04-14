@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "Song": {
+      "title": "Song",
+      "description": "A song with lyrics and chords",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The owner of the song" },
+        "title": { "type": "string" },
+        "artist": { "type": "string" },
+        "originalKey": { "type": "string" },
+        "currentKey": { "type": "string" },
+        "content": { "type": "string" },
+        "youtubeId": { "type": "string" },
+        "fontSize": { "type": "number" },
+        "autoScrollSpeed": { "type": "number" },
+        "isFavorite": { "type": "boolean" },
+        "bpm": { "type": "number" },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["userId", "title", "artist", "originalKey", "currentKey", "content"]
+    },
+    "Setlist": {
+      "title": "Setlist",
+      "description": "A collection of songs for a performance",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The owner of the setlist" },
+        "name": { "type": "string" },
+        "songIds": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "name", "songIds", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/songs/{songId}": {
+      "schema": "Song",
+      "description": "User songs"
+    },
+    "/setlists/{setlistId}": {
+      "schema": "Setlist",
+      "description": "User setlists"
+    }
+  }
+}

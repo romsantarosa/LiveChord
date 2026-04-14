@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Search, Plus, Heart, Music, ListMusic, MoreVertical, Play, Trash2, ChevronLeft, GripVertical, X } from 'lucide-react';
+import { Search, Plus, Heart, Music, ListMusic, MoreVertical, Play, Trash2, ChevronLeft, GripVertical, X, LogOut, Edit2, Check } from 'lucide-react';
 import { Song, Setlist } from '../types';
 import { cn } from '../lib/utils';
 import { motion, Reorder, AnimatePresence } from 'motion/react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SongListProps {
   songs: Song[];
@@ -18,6 +19,10 @@ interface SongListProps {
   onReorderSetlist: (setlistId: string, newSongIds: string[]) => void;
   onDeleteSong: (id: string) => void;
   onDeleteSetlist: (id: string) => void;
+  onUpdateSetlist: (id: string, updates: Partial<Setlist>) => void;
+  onSelectSongFromSetlist: (song: Song, setlist: Setlist) => void;
+  selectedSetlistId: string | null;
+  onSelectedSetlistIdChange: (id: string | null) => void;
 }
 
 export default function SongList({ 
@@ -33,15 +38,21 @@ export default function SongList({
   onRemoveFromSetlist,
   onReorderSetlist,
   onDeleteSong,
-  onDeleteSetlist
+  onDeleteSetlist,
+  onUpdateSetlist,
+  onSelectSongFromSetlist,
+  selectedSetlistId,
+  onSelectedSetlistIdChange
 }: SongListProps) {
-  const [activeTab, setActiveTab] = useState<'all' | 'favorites' | 'setlists'>('setlists');
+  const { user, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState<'all' | 'favorites' | 'setlists'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSetlistId, setSelectedSetlistId] = useState<string | null>(null);
   const [showSetlistSelector, setShowSetlistSelector] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showDeleteSetlistConfirm, setShowDeleteSetlistConfirm] = useState<string | null>(null);
   const [newSetlistName, setNewSetlistName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
   const [isCreatingSetlist, setIsCreatingSetlist] = useState(false);
 
   const filteredSongs = songs.filter(song => {
@@ -65,18 +76,67 @@ export default function SongList({
   const setlistSongs = selectedSetlist ? selectedSetlist.songIds.map(id => songs.find(s => s.id === id)).filter(Boolean) as Song[] : [];
 
   if (selectedSetlist) {
+    const handleSaveName = () => {
+      if (tempName.trim() && selectedSetlist) {
+        onUpdateSetlist(selectedSetlist.id, { name: tempName.trim() });
+        setIsEditingName(false);
+      }
+    };
+
+    const startEditing = () => {
+      setTempName(selectedSetlist.name);
+      setIsEditingName(true);
+    };
+
     return (
       <div className="flex flex-col h-full bg-black text-white">
         <div className="p-6 pb-2">
           <div className="flex items-center gap-4 mb-6">
             <button 
-              onClick={() => setSelectedSetlistId(null)}
+              onClick={() => {
+                onSelectedSetlistIdChange(null);
+                setIsEditingName(false);
+              }}
               className="p-2 hover:bg-zinc-900 rounded-full transition-colors"
             >
               <ChevronLeft size={24} />
             </button>
             <div className="flex-1">
-              <h1 className="text-2xl font-black tracking-tight text-white">{selectedSetlist.name}</h1>
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+                    onBlur={handleSaveName}
+                    className="bg-zinc-900 border border-orange-500/50 rounded-lg px-3 py-1 text-xl font-black text-white focus:outline-none w-full"
+                  />
+                  <button 
+                    onClick={handleSaveName}
+                    className="p-2 text-orange-500 hover:bg-orange-500/10 rounded-lg transition-colors"
+                  >
+                    <Check size={20} />
+                  </button>
+                  <button 
+                    onClick={() => setIsEditingName(false)}
+                    className="p-2 text-zinc-500 hover:bg-zinc-500/10 rounded-lg transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 group">
+                  <h1 className="text-2xl font-black tracking-tight text-white">{selectedSetlist.name}</h1>
+                  <button 
+                    onClick={startEditing}
+                    className="p-1.5 text-zinc-600 hover:text-orange-500 opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                </div>
+              )}
               <div className="flex items-center gap-2 mt-0.5">
                 <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{setlistSongs.length} músicas</p>
                 <span className="w-1 h-1 rounded-full bg-zinc-800" />
@@ -121,7 +181,7 @@ export default function SongList({
                   <div className="cursor-grab active:cursor-grabbing text-zinc-600 group-hover:text-zinc-400">
                     <GripVertical size={20} />
                   </div>
-                  <div className="flex-1 min-w-0" onClick={() => onSelectSong(song)}>
+                  <div className="flex-1 min-w-0" onClick={() => onSelectSongFromSetlist(song, selectedSetlist)}>
                     <h3 className="font-bold truncate">{song.title}</h3>
                     <p className="text-xs text-zinc-500 truncate">{song.artist}</p>
                   </div>
@@ -162,14 +222,36 @@ export default function SongList({
               <span className="text-orange-500">Live</span>
               <span className="text-white">Chord</span>
             </h1>
-            <p className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold mt-1">Performance Mode</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">Performance Mode</p>
+              <span className="w-1 h-1 rounded-full bg-zinc-800" />
+              <p className="text-[10px] text-orange-500/80 font-bold uppercase tracking-widest">{user?.displayName || user?.email?.split('@')[0]}</p>
+            </div>
           </div>
-          <button 
-            onClick={onAddSong}
-            className="w-12 h-12 bg-orange-500 text-black rounded-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(249,115,22,0.2)]"
-          >
-            <Plus size={28} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={logout}
+              className="w-12 h-12 bg-zinc-900 text-zinc-500 rounded-2xl flex items-center justify-center hover:text-white hover:bg-zinc-800 transition-all overflow-hidden"
+              title="Sair"
+            >
+              {user?.photoURL ? (
+                <img 
+                  src={user.photoURL} 
+                  alt={user.displayName || 'User'} 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <LogOut size={20} />
+              )}
+            </button>
+            <button 
+              onClick={onAddSong}
+              className="w-12 h-12 bg-orange-500 text-black rounded-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(249,115,22,0.2)]"
+            >
+              <Plus size={28} />
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -318,7 +400,7 @@ export default function SongList({
             {setlists.map(setlist => (
               <button 
                 key={setlist.id}
-                onClick={() => setSelectedSetlistId(setlist.id)}
+                onClick={() => onSelectedSetlistIdChange(setlist.id)}
                 className="bg-zinc-900 p-4 rounded-2xl flex items-center gap-4 hover:bg-zinc-800 transition-colors group text-left"
               >
                 <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors">
@@ -329,6 +411,18 @@ export default function SongList({
                   <p className="text-xs text-zinc-500">{setlist.songIds.length} músicas</p>
                 </div>
                 <div className="flex items-center gap-1">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectedSetlistIdChange(setlist.id);
+                      setTempName(setlist.name);
+                      setIsEditingName(true);
+                    }}
+                    className="w-10 h-10 rounded-xl bg-zinc-800/50 text-zinc-500 flex items-center justify-center hover:text-orange-500 hover:bg-orange-500/10 transition-all"
+                    title="Renomear Setlist"
+                  >
+                    <Edit2 size={18} />
+                  </button>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();

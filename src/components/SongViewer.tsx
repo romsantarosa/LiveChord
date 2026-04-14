@@ -17,12 +17,14 @@ import {
   Check,
   X,
   Save,
-  Eye
+  Eye,
+  Piano as PianoIcon
 } from 'lucide-react';
 import YouTube from 'react-youtube';
 import { Song } from '../types';
 import { transposeContent, transposeChord, normalizeNote, cn } from '../lib/utils';
 import SmartScroll from './SmartScroll';
+import ChordVisualizer, { CHORD_LIBRARY, GuitarDiagram, PianoDiagram } from './ChordVisualizer';
 
 interface SongViewerProps {
   song: Song;
@@ -83,6 +85,9 @@ export default function SongViewer({
   const [currentKey, setCurrentKey] = useState(song.currentKey || song.originalKey);
   const [transposeOffset, setTransposeOffset] = useState(0);
   const [fontSize, setFontSize] = useState(song.fontSize || 18);
+  const [selectedChord, setSelectedChord] = useState<string | null>(null);
+  const [showChordBar, setShowChordBar] = useState(false);
+  const [instrumentPreference, setInstrumentPreference] = useState<'guitar' | 'piano'>('guitar');
   const scrollRef = useRef<HTMLDivElement>(null);
   const requestRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
@@ -213,6 +218,20 @@ export default function SongViewer({
     return processedLines;
   };
 
+  const getUniqueChords = () => {
+    const chordRegex = /\[(.*?)\]/g;
+    const uniqueChords = new Set<string>();
+    let match;
+    while ((match = chordRegex.exec(song.content)) !== null) {
+      const rawChord = match[1];
+      const transposed = transposeOffset !== 0 ? transposeChord(rawChord, transposeOffset) : rawChord;
+      uniqueChords.add(transposed);
+    }
+    return Array.from(uniqueChords).sort();
+  };
+
+  const uniqueChords = getUniqueChords();
+
   const renderLine = (line: string, index: number) => {
     if (!line.trim()) return <div key={index} className="h-4" />;
 
@@ -243,7 +262,11 @@ export default function SongViewer({
           <div key={eIdx} className="inline-flex flex-col align-bottom">
             {showChords && (
               <div 
-                className="h-[1.2em] font-bold text-orange-500 font-mono whitespace-pre leading-none" 
+                onClick={() => el.chord && setSelectedChord(el.chord)}
+                className={cn(
+                  "h-[1.2em] font-bold text-orange-500 font-mono whitespace-pre leading-none transition-colors",
+                  el.chord ? "cursor-pointer hover:text-orange-400 underline decoration-orange-500/30 underline-offset-4" : ""
+                )}
                 style={{ fontSize: fontSize * 0.8 }}
               >
                 {el.chord || '\u00A0'}
@@ -342,8 +365,99 @@ export default function SongViewer({
                       <Youtube size={20} />
                     </button>
                   )}
+                  <button 
+                    onClick={() => setShowChordBar(!showChordBar)}
+                    className={cn("p-2 rounded-full transition-colors", showChordBar ? "bg-orange-500 text-black" : "text-zinc-400")}
+                    title="Ver Diagramas de Acordes"
+                  >
+                    <Music size={20} />
+                  </button>
                 </>
               )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Chord Bar */}
+      <AnimatePresence>
+        {showChordBar && !hideControls && !isEditing && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-zinc-900/50 border-b border-zinc-800 overflow-hidden shrink-0 z-40"
+          >
+            <div className="p-4 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => setInstrumentPreference('guitar')}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                      instrumentPreference === 'guitar' ? "bg-orange-500 text-black" : "bg-zinc-800 text-zinc-500 hover:text-white"
+                    )}
+                  >
+                    <Music size={12} />
+                    Violão
+                  </button>
+                  <button 
+                    onClick={() => setInstrumentPreference('piano')}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                      instrumentPreference === 'piano' ? "bg-orange-500 text-black" : "bg-zinc-800 text-zinc-500 hover:text-white"
+                    )}
+                  >
+                    <PianoIcon size={12} />
+                    Piano
+                  </button>
+                </div>
+                <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">
+                  {uniqueChords.length} Acordes na música
+                </span>
+              </div>
+
+              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                {uniqueChords.map(chord => {
+                  let normalizedChord = chord
+                    .replace('Db', 'C#')
+                    .replace('Eb', 'D#')
+                    .replace('Gb', 'F#')
+                    .replace('Ab', 'G#')
+                    .replace('Bb', 'A#');
+                  
+                  // Fallback
+                  if (!CHORD_LIBRARY[normalizedChord]) {
+                    const baseMatch = normalizedChord.match(/^([A-G][#b]?m?)/);
+                    if (baseMatch && CHORD_LIBRARY[baseMatch[1]]) {
+                      normalizedChord = baseMatch[1];
+                    }
+                  }
+
+                  const data = CHORD_LIBRARY[normalizedChord];
+
+                  return (
+                    <div 
+                      key={chord} 
+                      className="flex flex-col items-center gap-2 bg-black/40 p-3 rounded-2xl border border-zinc-800/50 min-w-[80px] cursor-pointer hover:border-orange-500/30 transition-colors"
+                      onClick={() => setSelectedChord(chord)}
+                    >
+                      <span className="text-sm font-black text-white">{chord}</span>
+                      {data ? (
+                        instrumentPreference === 'guitar' ? (
+                          <GuitarDiagram frets={data.guitar} size="small" />
+                        ) : (
+                          <PianoDiagram activeKeys={data.piano} size="small" />
+                        )
+                      ) : (
+                        <div className="w-[60px] h-[70px] flex items-center justify-center">
+                          <Music size={16} className="text-zinc-800" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </motion.div>
         )}
@@ -530,6 +644,11 @@ export default function SongViewer({
           </>
         )}
       </div>
+
+      <ChordVisualizer 
+        chord={selectedChord} 
+        onClose={() => setSelectedChord(null)} 
+      />
     </div>
   );
 }
