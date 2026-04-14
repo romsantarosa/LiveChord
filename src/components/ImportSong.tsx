@@ -171,14 +171,17 @@ Eu [Bm7]vou te bus[Em]car na frente do [C]mar
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
-      <div className="h-16 bg-zinc-900 flex items-center justify-between px-4 border-b border-zinc-800">
-        <button onClick={onClose} className="p-2 text-zinc-400 hover:text-white">
+      <div className="h-20 bg-zinc-900/50 backdrop-blur-xl flex items-center justify-between px-8 border-b border-zinc-800 shrink-0">
+        <button onClick={onClose} className="p-3 text-zinc-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all">
           <X size={24} />
         </button>
-        <h2 className="text-white font-bold">Nova Música</h2>
+        <div className="flex flex-col items-center">
+          <h2 className="text-white font-black tracking-tight text-lg">Nova Música</h2>
+          <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Importar ou Criar</p>
+        </div>
         <button 
           onClick={handleSave}
-          className="bg-white text-black px-4 py-1.5 rounded-full font-bold text-sm"
+          className="bg-orange-500 text-black px-8 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_10px_30px_rgba(249,115,22,0.3)]"
         >
           Salvar
         </button>
@@ -204,50 +207,50 @@ Eu [Bm7]vou te bus[Em]car na frente do [C]mar
             <button 
               onClick={handleAISearch}
               disabled={isSearchingAI || !title.trim()}
-              className="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col items-center gap-2 hover:bg-zinc-800 transition-all disabled:opacity-50 group"
+              className="w-full bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl flex flex-col items-center gap-3 hover:bg-zinc-800 transition-all disabled:opacity-50 group shadow-xl"
             >
               {isSearchingAI ? (
                 <>
-                  <Loader2 size={24} className="text-yellow-500 animate-spin" />
-                  <span className="text-[10px] text-yellow-500 animate-pulse font-bold">Buscando Versão Exata...</span>
+                  <Loader2 size={32} className="text-orange-500 animate-spin" />
+                  <span className="text-[10px] text-orange-500 animate-pulse font-black uppercase tracking-widest">Buscando Versão Exata...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles size={24} className="text-yellow-500 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold text-zinc-300">Buscar com IA</span>
+                  <Sparkles size={32} className="text-orange-500 group-hover:scale-110 transition-transform" />
+                  <span className="text-xs font-black text-zinc-300 uppercase tracking-widest">Buscar com IA</span>
                 </>
               )}
             </button>
-            <p className="text-[10px] text-zinc-600 text-center px-2">
+            <p className="text-[10px] text-zinc-600 text-center px-4 font-medium leading-relaxed">
               Dica: Preencha o <b>Artista</b> para resultados mais precisos.
             </p>
           </div>
           <button 
             onClick={mockImport}
             disabled={isParsing}
-            className="flex-1 bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex flex-col items-center gap-2 hover:bg-zinc-800 transition-all disabled:opacity-50 h-fit"
+            className="flex-1 bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl flex flex-col items-center gap-3 hover:bg-zinc-800 transition-all disabled:opacity-50 h-fit shadow-xl group"
           >
-            <Search size={24} className="text-zinc-400" />
-            <span className="text-xs font-bold text-zinc-300">Exemplo</span>
+            <Search size={32} className="text-zinc-500 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-black text-zinc-300 uppercase tracking-widest">Exemplo</span>
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-zinc-500 uppercase mb-1 ml-1">Título</label>
+            <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 ml-1">Título da Música</label>
             <input 
               type="text"
-              className="w-full bg-zinc-900 border-zinc-800 rounded-xl p-3 text-white focus:ring-1 focus:ring-white/20"
+              className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 text-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500/50 transition-all outline-none"
               placeholder="Ex: Tempo Perdido"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-zinc-500 uppercase mb-1 ml-1">Artista</label>
+            <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 ml-1">Artista / Banda</label>
             <input 
               type="text"
-              className="w-full bg-zinc-900 border-zinc-800 rounded-xl p-3 text-white focus:ring-1 focus:ring-white/20"
+              className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 text-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500/50 transition-all outline-none"
               placeholder="Ex: Legião Urbana"
               value={artist}
               onChange={(e) => setArtist(e.target.value)}
@@ -255,9 +258,9 @@ Eu [Bm7]vou te bus[Em]car na frente do [C]mar
           </div>
           <div className="flex gap-4">
             <div className="flex-1">
-              <label className="block text-xs font-bold text-zinc-500 uppercase mb-1 ml-1">Tom Original</label>
+              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 ml-1">Tom Original</label>
               <select 
-                className="w-full bg-zinc-900 border-zinc-800 rounded-xl p-3 text-white focus:ring-1 focus:ring-white/20"
+                className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 text-white focus:ring-2 focus:ring-orange-500/20 outline-none appearance-none transition-all"
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
               >
@@ -267,17 +270,17 @@ Eu [Bm7]vou te bus[Em]car na frente do [C]mar
               </select>
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-bold text-zinc-500 uppercase mb-1 ml-1">YouTube URL</label>
+              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 ml-1">Link do YouTube</label>
               <div className="relative flex gap-2">
                 <div className="relative flex-1">
-                  <Youtube className={cn("absolute left-3 top-1/2 -translate-y-1/2 transition-colors", youtubeId ? "text-red-500" : "text-zinc-500")} size={18} />
+                  <Youtube className={cn("absolute left-4 top-1/2 -translate-y-1/2 transition-colors", youtubeId ? "text-red-500" : "text-zinc-500")} size={18} />
                   <input 
                     type="text"
                     className={cn(
-                      "w-full bg-zinc-900 border rounded-xl p-3 pl-10 text-white focus:ring-1 focus:ring-white/20 transition-all",
-                      youtubeId ? "border-red-900/50" : "border-zinc-800"
+                      "w-full bg-zinc-900/50 border rounded-2xl p-4 pl-12 text-white focus:ring-2 focus:ring-orange-500/20 outline-none transition-all",
+                      youtubeId ? "border-red-900/30" : "border-zinc-800"
                     )}
-                    placeholder="Link do vídeo..."
+                    placeholder="Cole o link..."
                     value={youtubeUrl}
                     onChange={(e) => setYoutubeUrl(e.target.value)}
                   />
@@ -285,7 +288,7 @@ Eu [Bm7]vou te bus[Em]car na frente do [C]mar
                 <button 
                   onClick={handleYoutubeSearch}
                   disabled={isSearchingYoutube || !title.trim()}
-                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 rounded-xl transition-colors disabled:opacity-50"
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 rounded-2xl transition-all disabled:opacity-50 active:scale-95"
                   title="Buscar no YouTube"
                 >
                   {isSearchingYoutube ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
@@ -363,13 +366,13 @@ Eu [Bm7]vou te bus[Em]car na frente do [C]mar
             </div>
           )}
           <div>
-            <div className="flex items-center justify-between mb-1 ml-1">
-              <label className="block text-xs font-bold text-zinc-500 uppercase">Letra e Acordes</label>
-              <span className="text-[10px] text-zinc-600">Use [C] para acordes</span>
+            <div className="flex items-center justify-between mb-2 ml-1">
+              <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest">Letra e Acordes (ChordPro)</label>
+              <span className="text-[10px] text-zinc-600 font-medium">Use [C] para inserir acordes</span>
             </div>
             <textarea 
-              className="w-full bg-zinc-900 border-zinc-800 rounded-xl p-4 text-white font-mono text-sm min-h-[300px] focus:ring-1 focus:ring-white/20"
-              placeholder="[C]Todos os [Am7]dias..."
+              className="w-full bg-zinc-900/50 border border-zinc-800 rounded-3xl p-6 text-white font-mono text-sm min-h-[400px] focus:ring-2 focus:ring-orange-500/20 outline-none transition-all resize-none shadow-inner"
+              placeholder="[C]Todos os [Am7]dias quando [Bm7]acordo..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
             />

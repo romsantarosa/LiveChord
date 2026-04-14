@@ -101,6 +101,15 @@ Eu [Bm7]vou te bus[Em]car na frente do [C]mar
     }
   };
 
+  const handleDeleteSetlist = (id: string) => {
+    const newSetlists = setlists.filter(sl => sl.id !== id);
+    setSetlists(newSetlists);
+    storage.saveSetlists(newSetlists);
+    if (activeSetlist?.id === id) {
+      setActiveSetlist(null);
+    }
+  };
+
   const handleCreateSetlist = (name: string) => {
     const newSetlist: Setlist = {
       id: `setlist-${Date.now()}`,
@@ -136,11 +145,33 @@ Eu [Bm7]vou te bus[Em]car na frente do [C]mar
     storage.saveSetlists(newSetlists);
   };
 
+  const handleReorderSetlist = (setlistId: string, newSongIds: string[]) => {
+    const newSetlists = setlists.map(sl => {
+      if (sl.id === setlistId) {
+        return { ...sl, songIds: newSongIds };
+      }
+      return sl;
+    });
+    setSetlists(newSetlists);
+    storage.saveSetlists(newSetlists);
+    
+    // Update active setlist if it's the one being reordered
+    if (activeSetlist?.id === setlistId) {
+      setActiveSetlist({ ...activeSetlist, songIds: newSongIds });
+    }
+  };
+
   const handleSelectSetlist = (setlist: Setlist) => {
     setActiveSetlist(setlist);
     setSetlistIndex(0);
     const firstSong = songs.find(s => s.id === setlist.songIds[0]);
     if (firstSong) setSelectedSong(firstSong);
+  };
+
+  const handleStartSetlistShow = (setlist: Setlist) => {
+    setActiveSetlist(setlist);
+    setSetlistIndex(0);
+    setIsShowMode(true);
   };
 
   const navigateSetlist = (direction: number) => {
@@ -185,13 +216,15 @@ Eu [Bm7]vou te bus[Em]car na frente do [C]mar
               setlists={setlists}
               onSelectSong={setSelectedSong}
               onSelectSetlist={handleSelectSetlist}
+              onStartSetlistShow={handleStartSetlistShow}
               onAddSong={() => setIsImporting(true)}
               onToggleFavorite={handleToggleFavorite}
-              onShowMode={() => setIsShowMode(true)}
               onAddToSetlist={handleAddSongToSetlist}
               onCreateSetlist={handleCreateSetlist}
               onRemoveFromSetlist={handleRemoveSongFromSetlist}
+              onReorderSetlist={handleReorderSetlist}
               onDeleteSong={handleDeleteSong}
+              onDeleteSetlist={handleDeleteSetlist}
             />
           </motion.div>
         )}
@@ -203,7 +236,7 @@ Eu [Bm7]vou te bus[Em]car na frente do [C]mar
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="h-full"
+            className="h-full relative"
           >
             <SongViewer 
               song={selectedSong}
