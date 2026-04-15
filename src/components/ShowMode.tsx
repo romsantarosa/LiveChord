@@ -100,25 +100,47 @@ export default function ShowMode({ songs, initialSongIndex = 0, onClose, active 
 
   if (!active) return null;
 
+  // 1) CORRIGIR SHOWMODE - Validação
   if (!currentSong || !currentSong.content) {
     return (
-      <div className="bg-black text-white min-h-screen flex flex-col items-center justify-center gap-6 p-6 text-center">
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-xl font-bold">Nenhuma música carregada</p>
-          <p className="text-zinc-500 text-sm">A música selecionada não possui conteúdo ou não foi encontrada.</p>
-        </div>
+      <div style={{
+        background: 'black',
+        color: 'white',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '20px'
+      }}>
+        <p>ERRO: música sem conteúdo</p>
         <button 
           onClick={onClose}
-          className="bg-zinc-900 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all border border-zinc-800"
+          className="p-2.5 md:p-3 bg-zinc-900 rounded-xl text-xs uppercase tracking-widest font-bold"
         >
-          Voltar para a Lista
+          Voltar
         </button>
       </div>
     );
   }
 
+  // 2) NÃO MODIFICAR OBJETO DIRETAMENTE
+  const enhancedSong = {
+    ...currentSong,
+    fontSize: (fontSize || 18) * 1.2
+  };
+
   return (
-    <div className="fixed inset-0 z-[100] bg-black text-white overflow-hidden flex flex-col font-sans" style={{ minHeight: '100vh' }}>
+    <div 
+      className="fixed inset-0 z-[100] bg-black text-white overflow-hidden flex flex-col font-sans" 
+      style={{ 
+        background: 'black', 
+        color: 'white', 
+        minHeight: '100vh' 
+      }}
+      // 6) CONTROLES INTELIGENTES
+      onClick={() => setShowControls(true)}
+    >
       {/* Tap Zones & Content */}
       <div 
         className="flex-1 relative overflow-hidden"
@@ -154,24 +176,23 @@ export default function ShowMode({ songs, initialSongIndex = 0, onClose, active 
             >
               <header className="mb-8 border-b border-zinc-800 pb-6">
                 <h1 className="text-2xl sm:text-4xl font-black mb-1 text-white uppercase tracking-tighter">
-                  {currentSong.title}
+                  {enhancedSong.title}
                 </h1>
                 <p className="text-lg sm:text-xl text-zinc-500 font-bold uppercase tracking-widest">
-                  {currentSong.artist}
+                  {enhancedSong.artist}
                 </p>
               </header>
 
               <ChordRenderer 
-                content={currentSong.content}
-                fontSize={fontSize}
-                transpose={0} // Show mode uses current song state usually, but here we simplify
+                content={enhancedSong.content}
+                fontSize={enhancedSong.fontSize}
+                transpose={0}
                 showChords={true}
                 className="pb-[50vh]"
               />
             </motion.div>
           </AnimatePresence>
         </div>
-
       </div>
 
       {/* Overlay Controls */}
@@ -187,7 +208,7 @@ export default function ShowMode({ songs, initialSongIndex = 0, onClose, active 
             >
               <button 
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
-                className="p-3 bg-zinc-900/80 backdrop-blur-md rounded-xl text-orange-500 border border-white/10 shadow-xl hover:bg-zinc-800 transition-colors"
+                className="p-2.5 md:p-3 bg-zinc-900/80 backdrop-blur-md rounded-xl text-orange-500 border border-white/10 shadow-xl hover:bg-zinc-800 transition-colors"
               >
                 <X size={24} />
               </button>
@@ -202,7 +223,7 @@ export default function ShowMode({ songs, initialSongIndex = 0, onClose, active 
               onClick={(e) => e.stopPropagation()}
             >
               {/* Secondary Controls (Speed/Font) */}
-              <div className="flex flex-col gap-2 bg-zinc-900/90 backdrop-blur-md p-4 rounded-[10px] border border-white/10 shadow-2xl w-64">
+              <div className="flex flex-col gap-2 bg-zinc-900/90 backdrop-blur-md p-2.5 md:p-3 rounded-xl border border-white/10 shadow-2xl w-64">
                 <div className="flex flex-col gap-1">
                   <div className="flex justify-between items-center">
                     <span className="text-[8px] font-black uppercase tracking-widest text-zinc-500">Velocidade</span>
@@ -249,11 +270,11 @@ export default function ShowMode({ songs, initialSongIndex = 0, onClose, active 
               </div>
 
               {/* Main Controls */}
-              <div className="flex items-center gap-2 bg-zinc-900/90 backdrop-blur-md p-2 rounded-[10px] border border-white/10 shadow-2xl">
+              <div className="flex items-center gap-2 bg-zinc-900/90 backdrop-blur-md p-2.5 md:p-3 rounded-xl border border-white/10 shadow-2xl">
                 <button 
                   onClick={prevSong}
                   disabled={currentIndex === 0}
-                  className="p-3 text-white disabled:opacity-20 hover:bg-white/5 rounded-lg transition-colors"
+                  className="p-2.5 md:p-3 text-white disabled:opacity-20 hover:bg-white/5 rounded-xl transition-colors"
                 >
                   <ChevronLeft size={20} />
                 </button>
@@ -261,7 +282,7 @@ export default function ShowMode({ songs, initialSongIndex = 0, onClose, active 
                 <button 
                   onClick={() => isScrolling ? stopScroll() : startScroll()}
                   className={cn(
-                    "px-6 py-3 rounded-[8px] flex items-center gap-2 font-black text-[10px] uppercase tracking-widest transition-all",
+                    "px-6 py-2.5 md:py-3 rounded-xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest transition-all",
                     isScrolling ? "bg-red-600 text-white" : "bg-white text-black"
                   )}
                 >
@@ -275,7 +296,7 @@ export default function ShowMode({ songs, initialSongIndex = 0, onClose, active 
                 <button 
                   onClick={nextSong}
                   disabled={currentIndex === songs.length - 1}
-                  className="p-3 text-white disabled:opacity-20 hover:bg-white/5 rounded-lg transition-colors"
+                  className="p-2.5 md:p-3 text-white disabled:opacity-20 hover:bg-white/5 rounded-xl transition-colors"
                 >
                   <ChevronRight size={20} />
                 </button>

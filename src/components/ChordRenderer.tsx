@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { parseSong, convertToChordPro, SongLine } from '../lib/parser';
-import { transposeChord } from '../lib/transpose';
+import { transposeSong } from '../lib/transpose';
 import { cn } from '../lib/utils';
 
 interface ChordRendererProps {
@@ -12,9 +12,18 @@ interface ChordRendererProps {
   className?: string;
 }
 
+interface Segment {
+  chord: string | null;
+  text: string;
+}
+
+interface Word {
+  segments: Segment[];
+}
+
 /**
  * Component to render song lyrics with chords aligned above them.
- * Optimized with useMemo for performance.
+ * Optimized for performance and responsive wrapping.
  */
 export const ChordRenderer: React.FC<ChordRendererProps> = ({
   content,
@@ -24,80 +33,126 @@ export const ChordRenderer: React.FC<ChordRendererProps> = ({
   onChordClick,
   className
 }) => {
-  // Parse and transpose content only when content or transpose changes
+  // 1) Protective check for content
+  if (!content) {
+    return <div className="text-zinc-500 italic p-4">Música sem conteúdo</div>;
+  }
+
+  // 2) Transpose and Parse with error handling
   const parsedLines = useMemo(() => {
-    const chordProContent = convertToChordPro(content);
-    return parseSong(chordProContent);
-  }, [content]);
-
-  const renderLine = (line: SongLine, index: number) => {
-    if (line.type === 'empty') {
-      return <div key={index} className="h-4" aria-hidden="true" />;
+    try {
+      const safeContent = content || "";
+      const transposed = transpose !== 0 ? transposeSong(safeContent, transpose) : safeContent;
+      const chordPro = convertToChordPro(transposed);
+      const result = parseSong(chordPro);
+      return result && result.length ? result : [{ type: 'line', chords: [], lyrics: transposed } as SongLine];
+    } catch (e) {
+      console.error("ChordRenderer Error:", e);
+      return [{ type: 'line', chords: [], lyrics: content } as SongLine];
     }
+  }, [content, transpose]);
 
-    // Process line into segments of { chord, text }
-    const segments: { chord: string | null; text: string }[] = [];
+  /**
+   * Groups segments into "words" to prevent chords from breaking away from their syllables
+   * during line wrapping on mobile devices.
+   */
+  const getWords = (line: SongLine): Word[] => {
+    const segments: Segment[] = [];
     
-    if (line.chords.length === 0) {
-      segments.push({ chord: null, text: line.lyrics });
+    if (!line.chords || line.chords.length === 0) {
+      segments.push({ chord: null, text: line.lyrics || "" });
     } else {
-      // Sort chords by position just in case
       const sortedChords = [...line.chords].sort((a, b) => a.position - b.position);
       
-      let lastPos = 0;
+      // Handle text before the first chord
+      if (sortedChords[0].position > 0) {
+        segments.push({ 
+          chord: null, 
+          text: line.lyrics.slice(0, sortedChords[0].position) 
+        });
+      }
+      
       for (let i = 0; i < sortedChords.length; i++) {
         const current = sortedChords[i];
         const next = sortedChords[i + 1];
-        
-        // Transpose the chord if needed
-        const displayChord = transpose !== 0 
-          ? transposeChord(current.chord, transpose) 
-          : current.chord;
-        
-        // Handle text before the first chord
-        if (i === 0 && current.position > 0) {
-          segments.push({ 
-            chord: null, 
-            text: line.lyrics.slice(0, current.position) 
-          });
-        }
-        
-        // Text between this chord and the next chord (or end of line)
         const textEnd = next ? next.position : line.lyrics.length;
-        const text = line.lyrics.slice(current.position, textEnd);
-        
-        segments.push({ chord: displayChord, text });
+        segments.push({ 
+          chord: current.chord, 
+          text: line.lyrics.slice(current.position, textEnd) 
+        });
       }
     }
+
+    // Group segments into words (splitting by spaces but keeping the space with the preceding word)
+    const words: Word[] = [];
+    let currentWordSegments: Segment[] = [];
+
+    segments.forEach(seg => {
+      const parts = seg.text.split(/(\s+)/);
+      
+      parts.forEach((part, idx) => {
+        if (part === '') return;
+        
+        const isSpace = /^\s+$/.test(part);
+        
+        if (isSpace) {
+          // Add space to current word and finish it
+          currentWordSegments.push({ chord: idx === 0 ? seg.chord : null, text: part });
+          words.push({ segments: currentWordSegments });
+          currentWordSegments = [];
+        } else {
+          // If it's a new word part and we have a chord, it belongs to the start of this part
+          currentWordSegments.push({ chord: idx === 0 ? seg.chord : null, text: part });
+        }
+      });
+    });
+
+    if (currentWordSegments.length > 0) {
+      words.push({ segments: currentWordSegments });
+    }
+
+    return words;
+  };
+
+  const renderLine = (line: SongLine, index: number) => {
+    if (line.type === 'empty') {
+      return <div key={index} className="h-6" aria-hidden="true" />;
+    }
+
+    const words = getWords(line);
 
     return (
       <div 
         key={index} 
         className={cn(
-          "flex flex-wrap break-inside-avoid", 
-          showChords ? "mb-6 mt-4" : "mb-2"
+          "flex flex-wrap items-end leading-none select-none", 
+          showChords ? "mb-6 mt-2" : "mb-2"
         )}
       >
-        {segments.map((segment, sIdx) => (
-          <div key={sIdx} className="inline-flex flex-col align-bottom">
-            {showChords && (
-              <div 
-                onClick={() => segment.chord && onChordClick?.(segment.chord)}
-                className={cn(
-                  "h-[1.2em] font-bold text-orange-500 font-mono whitespace-pre leading-none transition-colors",
-                  segment.chord ? "cursor-pointer hover:text-orange-400 underline decoration-orange-500/30 underline-offset-4" : ""
+        {words.map((word, wIdx) => (
+          <div key={wIdx} className="inline-flex whitespace-nowrap">
+            {word.segments.map((seg, sIdx) => (
+              <div key={sIdx} className="inline-flex flex-col">
+                {showChords && (
+                  <div 
+                    onClick={() => seg.chord && onChordClick?.(seg.chord)}
+                    className={cn(
+                      "h-[1.2em] font-bold text-orange-500 font-mono whitespace-pre transition-colors",
+                      seg.chord ? "cursor-pointer hover:text-orange-400 underline decoration-orange-500/30 underline-offset-4" : ""
+                    )}
+                    style={{ fontSize: fontSize * 0.8 }}
+                  >
+                    {seg.chord || '\u00A0'}
+                  </div>
                 )}
-                style={{ fontSize: fontSize * 0.85 }}
-              >
-                {segment.chord || '\u00A0'}
+                <div 
+                  className="text-white font-mono whitespace-pre" 
+                  style={{ fontSize }}
+                >
+                  {seg.text}
+                </div>
               </div>
-            )}
-            <div 
-              className="text-white font-mono whitespace-pre leading-none" 
-              style={{ fontSize }}
-            >
-              {segment.text || (sIdx === segments.length - 1 && segment.chord ? '\u00A0' : '')}
-            </div>
+            ))}
           </div>
         ))}
       </div>
@@ -105,7 +160,7 @@ export const ChordRenderer: React.FC<ChordRendererProps> = ({
   };
 
   return (
-    <div className={cn("w-full select-none", className)}>
+    <div className={cn("w-full max-w-full overflow-x-hidden", className)}>
       {parsedLines.map((line, index) => renderLine(line, index))}
     </div>
   );

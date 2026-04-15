@@ -71,15 +71,28 @@ export function useSongViewer(song: Song, onUpdate: (updatedSong: Song) => void,
   }, [isScrolling, startScroll, stopScroll, setScrollSpeed]);
 
   const uniqueChords = useMemo(() => {
-    const parsedSong = parseSong(convertToChordPro(song.content));
-    const chords = new Set<string>();
-    parsedSong.forEach(line => {
-      line.chords.forEach(cp => {
-        const transposed = transposeOffset !== 0 ? transposeChord(cp.chord, transposeOffset) : cp.chord;
-        chords.add(transposed);
-      });
-    });
-    return Array.from(chords).sort();
+    try {
+      const chordProContent = convertToChordPro(song.content || "");
+      const parsedSong = parseSong(chordProContent);
+      const chords = new Set<string>();
+      
+      if (parsedSong && Array.isArray(parsedSong)) {
+        parsedSong.forEach(line => {
+          if (line && line.chords && Array.isArray(line.chords)) {
+            line.chords.forEach(cp => {
+              if (cp && cp.chord) {
+                const transposed = transposeOffset !== 0 ? transposeChord(cp.chord, transposeOffset) : cp.chord;
+                chords.add(transposed);
+              }
+            });
+          }
+        });
+      }
+      return Array.from(chords).sort();
+    } catch (e) {
+      console.error("Erro ao extrair acordes únicos:", e);
+      return [];
+    }
   }, [song.content, transposeOffset]);
 
   return {

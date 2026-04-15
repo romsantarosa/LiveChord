@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import YouTube from 'react-youtube';
 import { Song } from '../types';
 import { cn } from '../lib/utils';
+import { parseSong, convertToChordPro } from '../lib/parser';
+import { transposeSong } from '../lib/transpose';
 import ChordVisualizer from './ChordVisualizer';
 import ChordRenderer from './ChordRenderer';
 import { SongHeader } from './SongHeader';
@@ -36,6 +38,15 @@ export default function SongViewer({
   isActive = true,
   isColumnMode = false
 }: SongViewerProps) {
+  // 1) PROTEGER CONTEÚDO
+  if (!song || !song.content) {
+    return (
+      <div style={{ color: 'white', padding: 20, background: 'black', minHeight: '100vh' }}>
+        Música sem conteúdo
+      </div>
+    );
+  }
+
   const {
     isWakeLocked,
     toggleWakeLock,
@@ -71,6 +82,27 @@ export default function SongViewer({
     handleSmartScrollAction,
     uniqueChords
   } = useSongViewer(song, onUpdate, isActive);
+
+  // 2) PROTEGER TRANSPOSE
+  const safeContent = song.content || "";
+  const transposedContent = useMemo(() => {
+    try {
+      return transposeSong(safeContent, transposeOffset || 0) || safeContent;
+    } catch (e) {
+      return safeContent;
+    }
+  }, [safeContent, transposeOffset]);
+
+  // 3) PROTEGER PARSER
+  const parsed = useMemo(() => {
+    try {
+      const chordProContent = convertToChordPro(transposedContent);
+      const result = parseSong(chordProContent);
+      return result && result.length ? result : [{ type: "line", chords: [], lyrics: transposedContent }];
+    } catch (e) {
+      return [{ type: "line", chords: [], lyrics: transposedContent }];
+    }
+  }, [transposedContent]);
 
   return (
     <div className={cn(
@@ -168,13 +200,20 @@ export default function SongViewer({
                 />
               </div>
             ) : (
-              <ChordRenderer 
-                content={song.content}
-                transpose={transposeOffset}
-                fontSize={fontSize}
-                showChords={showChords}
-                onChordClick={setSelectedChord}
-              />
+              <>
+                {/* 6) GARANTIR RENDERIZAÇÃO - Fallback se ChordRenderer falhar */}
+                {parsed.length === 0 ? (
+                  <div style={{ color: 'white', whiteSpace: 'pre-wrap' }}>{transposedContent}</div>
+                ) : (
+                  <ChordRenderer 
+                    content={song.content}
+                    transpose={transposeOffset}
+                    fontSize={fontSize}
+                    showChords={showChords}
+                    onChordClick={setSelectedChord}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
@@ -183,13 +222,13 @@ export default function SongViewer({
           <>
             <button 
               onClick={onPrev}
-              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-zinc-900/50 backdrop-blur rounded-full flex items-center justify-center text-white border border-zinc-800 z-40"
+              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-zinc-900/50 backdrop-blur rounded-xl flex items-center justify-center text-white border border-zinc-800 z-40 p-2.5 md:p-3"
             >
               <ChevronLeft size={24} className="sm:size-8" />
             </button>
             <button 
               onClick={onNext}
-              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-zinc-900/50 backdrop-blur rounded-full flex items-center justify-center text-white border border-zinc-800 z-40"
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-zinc-900/50 backdrop-blur rounded-xl flex items-center justify-center text-white border border-zinc-800 z-40 p-2.5 md:p-3"
             >
               <ChevronRight size={24} className="sm:size-8" />
             </button>
