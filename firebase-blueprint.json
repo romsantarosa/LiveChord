@@ -31,6 +31,17 @@
         "createdAt": { "type": "number" }
       },
       "required": ["userId", "name", "songIds", "createdAt"]
+    },
+    "Artist": {
+      "title": "Artist",
+      "description": "An artist folder for grouping songs",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The owner of the artist folder" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "name", "createdAt"]
     }
   },
   "firestore": {
@@ -41,6 +52,10 @@
     "/setlists/{setlistId}": {
       "schema": "Setlist",
       "description": "User setlists"
+    },
+    "/artists/{artistId}": {
+      "schema": "Artist",
+      "description": "User artist folders"
     }
   }
 }

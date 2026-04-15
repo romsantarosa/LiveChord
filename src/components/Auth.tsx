@@ -68,17 +68,17 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-6">
+    <div className="min-h-screen bg-black flex items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-md">
-        <div className="flex flex-col items-center mb-12">
-          <div className="w-20 h-20 bg-orange-500 rounded-[2rem] flex items-center justify-center mb-6 shadow-[0_20px_50px_rgba(249,115,22,0.3)]">
-            <Music size={40} className="text-black" />
+        <div className="flex flex-col items-center mb-8 sm:mb-12">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-500 rounded-2xl sm:rounded-[2rem] flex items-center justify-center mb-4 sm:mb-6 shadow-[0_20px_50px_rgba(249,115,22,0.3)]">
+            <Music size={32} className="text-black sm:size-[40px]" />
           </div>
-          <h1 className="text-4xl font-black tracking-tighter">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">
             <span className="text-orange-500">Live</span>
             <span className="text-white">Chord</span>
           </h1>
-          <p className="text-zinc-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-2">
+          <p className="text-zinc-500 font-bold uppercase tracking-[0.2em] text-[8px] sm:text-[10px] mt-2">
             {isLogin ? 'Bem-vindo de volta' : 'Crie sua conta'}
           </p>
         </div>

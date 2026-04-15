@@ -1,249 +1,292 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Play, Pause, RotateCcw, Settings, Wifi, WifiOff, Columns } from 'lucide-react';
+import { X, Play, Pause, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { Song } from '../types';
-import SongViewer from './SongViewer';
 import { cn } from '../lib/utils';
+import { useAutoScroll } from '../hooks/useAutoScroll';
+import { useWakeLock } from '../hooks/useWakeLock';
+import ChordRenderer from './ChordRenderer';
 
 interface ShowModeProps {
   songs: Song[];
   initialSongIndex?: number;
   onClose: () => void;
+  active: boolean;
 }
 
-export default function ShowMode({ songs, initialSongIndex = 0, onClose }: ShowModeProps) {
+export default function ShowMode({ songs, initialSongIndex = 0, onClose, active }: ShowModeProps) {
   const [currentIndex, setCurrentIndex] = useState(initialSongIndex);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isColumnMode, setIsColumnMode] = useState(false);
-  const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
+  const [direction, setDirection] = useState(0); // -1 for prev, 1 for next
+  const [fontSize, setFontSize] = useState(24);
   const [showControls, setShowControls] = useState(true);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { isWakeLocked, toggleWakeLock, requestWakeLock } = useWakeLock();
 
+  // Update currentIndex when initialSongIndex changes and component is active
+  useEffect(() => {
+    if (active) {
+      setCurrentIndex(initialSongIndex);
+    }
+  }, [initialSongIndex, active]);
+  
   const currentSong = songs[currentIndex];
 
-  if (!currentSong) {
+  const {
+    isScrolling,
+    speed: scrollSpeed,
+    setSpeed: setScrollSpeed,
+    startScroll,
+    stopScroll,
+    manualScroll,
+    scrollRef
+  } = useAutoScroll<HTMLDivElement>({
+    initialSpeed: currentSong?.autoScrollSpeed || 5,
+    isActive: active
+  });
+
+  const [scrollAmount, setScrollAmount] = useState(150);
+
+  // Auto-request wake lock on mount or when active
+  useEffect(() => {
+    if (active) {
+      requestWakeLock();
+    }
+  }, [requestWakeLock, active]);
+
+  // Auto-hide controls after 3 seconds of inactivity
+  useEffect(() => {
+    if (active && showControls) {
+      const timer = setTimeout(() => setShowControls(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showControls, active]);
+
+  const nextSong = useCallback(() => {
+    if (currentIndex < songs.length - 1) {
+      setDirection(1);
+      setCurrentIndex(prev => prev + 1);
+      stopScroll();
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    }
+  }, [currentIndex, songs.length, stopScroll, scrollRef]);
+
+  const prevSong = useCallback(() => {
+    if (currentIndex > 0) {
+      setDirection(-1);
+      setCurrentIndex(prev => prev - 1);
+      stopScroll();
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    }
+  }, [currentIndex, stopScroll, scrollRef]);
+
+  const handleScreenClick = (e: React.MouseEvent) => {
+    // If controls are hidden, show them on any tap
+    if (!showControls) {
+      setShowControls(true);
+      // Also trigger manual scroll on tap if hidden
+      manualScroll(scrollAmount);
+      return;
+    }
+
+    // If controls are visible:
+    // Any tap on the screen (outside buttons) scrolls down and hides controls
+    setShowControls(false);
+    manualScroll(scrollAmount);
+  };
+
+  const swipeConfidenceThreshold = 10000;
+  const swipePower = (offset: number, velocity: number) => {
+    return Math.abs(offset) * velocity;
+  };
+
+  if (!active) return null;
+
+  if (!currentSong || !currentSong.content) {
     return (
-      <div className="fixed inset-0 z-[100] bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-zinc-500 mb-4">Nenhuma música encontrada</p>
-          <button onClick={onClose} className="bg-zinc-800 px-4 py-2 rounded-xl">Voltar</button>
+      <div className="bg-black text-white min-h-screen flex flex-col items-center justify-center gap-6 p-6 text-center">
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-xl font-bold">Nenhuma música carregada</p>
+          <p className="text-zinc-500 text-sm">A música selecionada não possui conteúdo ou não foi encontrada.</p>
         </div>
+        <button 
+          onClick={onClose}
+          className="bg-zinc-900 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all border border-zinc-800"
+        >
+          Voltar para a Lista
+        </button>
       </div>
     );
   }
 
-  // Wake Lock implementation
-  useEffect(() => {
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) {
-          const lock = await navigator.wakeLock.request('screen');
-          setWakeLock(lock);
-          console.log('Wake Lock is active');
-        }
-      } catch (err) {
-        console.error(`${err.name}, ${err.message}`);
-      }
-    };
-
-    requestWakeLock();
-
-    return () => {
-      wakeLock?.release().then(() => setWakeLock(null));
-    };
-  }, []);
-
-  // Handle controls visibility
-  useEffect(() => {
-    if (showControls) {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-      controlsTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, 4000);
-    }
-
-    return () => {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    };
-  }, [showControls]);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
-      }
-    }
-  };
-
-  const nextSong = () => {
-    if (currentIndex < songs.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  const prevSong = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
   return (
-    <div 
-      className="fixed inset-0 z-[100] bg-black text-white overflow-hidden flex flex-col"
-      onDoubleClick={() => setShowControls(!showControls)}
-    >
-      {/* Top Bar */}
+    <div className="fixed inset-0 z-[100] bg-black text-white overflow-hidden flex flex-col font-sans" style={{ minHeight: '100vh' }}>
+      {/* Tap Zones & Content */}
+      <div 
+        className="flex-1 relative overflow-hidden"
+        onClick={handleScreenClick}
+      >
+        <div 
+          ref={scrollRef}
+          className="h-full overflow-y-auto px-6 py-12 scrollbar-hide"
+        >
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={currentIndex}
+              custom={direction}
+              initial={{ x: direction > 0 ? 300 : -300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: direction > 0 ? -300 : 300, opacity: 0 }}
+              transition={{ 
+                x: { type: "spring", stiffness: 300, damping: 30 },
+                opacity: { duration: 0.2 }
+              }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(e, { offset, velocity }) => {
+                const swipe = swipePower(offset.x, velocity.x);
+                if (swipe < -swipeConfidenceThreshold) {
+                  nextSong();
+                } else if (swipe > swipeConfidenceThreshold) {
+                  prevSong();
+                }
+              }}
+              className="max-w-4xl mx-auto cursor-grab active:cursor-grabbing"
+            >
+              <header className="mb-8 border-b border-zinc-800 pb-6">
+                <h1 className="text-2xl sm:text-4xl font-black mb-1 text-white uppercase tracking-tighter">
+                  {currentSong.title}
+                </h1>
+                <p className="text-lg sm:text-xl text-zinc-500 font-bold uppercase tracking-widest">
+                  {currentSong.artist}
+                </p>
+              </header>
+
+              <ChordRenderer 
+                content={currentSong.content}
+                fontSize={fontSize}
+                transpose={0} // Show mode uses current song state usually, but here we simplify
+                showChords={true}
+                className="pb-[50vh]"
+              />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+      </div>
+
+      {/* Overlay Controls */}
       <AnimatePresence>
         {showControls && (
-          <motion.div 
-            initial={{ y: -100 }}
-            animate={{ y: 0 }}
-            exit={{ y: -100 }}
-            className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/80 to-transparent p-6 flex items-center justify-between"
-          >
-            <div className="flex items-center gap-4">
+          <>
+            {/* Top Bar - Minimal */}
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-6 right-6 z-[110]"
+            >
               <button 
-                onClick={onClose}
-                className="p-2.5 hover:bg-white/10 rounded-full transition-all"
+                onClick={(e) => { e.stopPropagation(); onClose(); }}
+                className="p-3 bg-zinc-900/80 backdrop-blur-md rounded-xl text-orange-500 border border-white/10 shadow-xl hover:bg-zinc-800 transition-colors"
               >
                 <X size={24} />
               </button>
-              <div className="flex flex-col">
-                <h2 className="text-xl font-bold text-white leading-tight">{currentSong.title}</h2>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-medium">{currentSong.artist}</p>
-                  <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                  <span className="px-1.5 py-0.5 bg-orange-500/10 text-orange-500 rounded text-[10px] font-bold border border-orange-500/20">
-                    {currentSong.currentKey}
-                  </span>
-                </div>
-              </div>
-            </div>
+            </motion.div>
 
-            <div className="flex items-center gap-6">
-              <button 
-                onClick={() => setIsColumnMode(!isColumnMode)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all",
-                  isColumnMode ? "bg-orange-500 text-black" : "bg-zinc-900/50 text-zinc-400 border border-zinc-800"
-                )}
-                title={isColumnMode ? "Desativar 2 Colunas" : "Ativar 2 Colunas"}
-              >
-                <Columns size={16} />
-                <span className="hidden sm:inline">2 Colunas</span>
-              </button>
-
-              <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900/50 rounded-full border border-zinc-800">
-                <div className={`w-2 h-2 rounded-full ${wakeLock ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
-                <span className="text-[10px] font-bold uppercase tracking-tighter">Wake Lock</span>
-              </div>
-              
-              <button 
-                onClick={toggleFullscreen}
-                className="p-2 hover:bg-white/10 rounded-full transition-colors"
-              >
-                {isFullscreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Main Content */}
-      <div className="flex-1 relative">
-        <AnimatePresence initial={false}>
-          {songs.map((song, index) => {
-            // Render current, previous and next songs for smooth transitions and background loading
-            const isNeighbor = Math.abs(index - currentIndex) <= 1;
-            if (!isNeighbor) return null;
-
-            return (
-              <motion.div
-                key={song.id}
-                initial={{ opacity: 0, x: index > currentIndex ? '100%' : '-100%' }}
-                animate={{ 
-                  opacity: index === currentIndex ? 1 : 0.5, 
-                  x: (index - currentIndex) * 100 + '%',
-                  scale: index === currentIndex ? 1 : 0.9,
-                  zIndex: index === currentIndex ? 10 : 0
-                }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                onDragEnd={(_, info) => {
-                  if (info.offset.x < -100) nextSong();
-                  else if (info.offset.x > 100) prevSong();
-                }}
-                transition={{ type: 'spring', damping: 30, stiffness: 250 }}
-                className="absolute inset-0 touch-pan-y"
-              >
-                <SongViewer 
-                  song={{
-                    ...song,
-                    fontSize: (song.fontSize || 18) * 1.2 // Auto-increase font for show mode
-                  }}
-                  onUpdate={() => {}} // Read-only in show mode
-                  onBack={onClose}
-                  isSetlistMode={true}
-                  onNext={nextSong}
-                  onPrev={prevSong}
-                  hideControls={!showControls}
-                  isActive={index === currentIndex}
-                  isColumnMode={isColumnMode}
-                />
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-      </div>
-
-      {/* Bottom Navigation Bar */}
-      <AnimatePresence>
-        {showControls && (
-          <motion.div 
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            className="absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/80 to-transparent p-8 flex items-center justify-center gap-12"
-          >
-            <button 
-              onClick={prevSong}
-              disabled={currentIndex === 0}
-              className="p-4 bg-zinc-900/80 hover:bg-orange-500 hover:text-black rounded-2xl transition-all disabled:opacity-20 disabled:hover:bg-zinc-900/80 disabled:hover:text-white"
+            {/* Floating Controls - Bottom Right */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 0.8, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed bottom-[20px] right-[20px] z-[110] flex flex-col gap-3 items-end"
+              onClick={(e) => e.stopPropagation()}
             >
-              <ChevronLeft size={32} />
-            </button>
-
-            <div className="flex flex-col items-center">
-              <span className="text-[10px] font-bold text-zinc-500 uppercase mb-2">Música {currentIndex + 1} de {songs.length}</span>
-              <div className="flex gap-1 mb-2">
-                {songs.map((_, idx) => (
-                  <div 
-                    key={idx}
-                    className={`h-1 rounded-full transition-all ${idx === currentIndex ? 'w-8 bg-orange-500' : 'w-2 bg-zinc-800'}`}
+              {/* Secondary Controls (Speed/Font) */}
+              <div className="flex flex-col gap-2 bg-zinc-900/90 backdrop-blur-md p-4 rounded-[10px] border border-white/10 shadow-2xl w-64">
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-zinc-500">Velocidade</span>
+                    <span className="text-sm font-mono font-black text-orange-500">{scrollSpeed}</span>
+                  </div>
+                  <input 
+                    type="range"
+                    min="1"
+                    max="20"
+                    value={scrollSpeed}
+                    onChange={(e) => setScrollSpeed(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-orange-500"
                   />
-                ))}
-              </div>
-              {currentIndex < songs.length - 1 && (
-                <div className="flex items-center gap-2 text-[10px] text-zinc-400 font-bold uppercase tracking-widest">
-                  <span>Próxima:</span>
-                  <span className="text-white">{songs[currentIndex + 1].title}</span>
                 </div>
-              )}
-            </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-zinc-500">Fonte</span>
+                    <span className="text-sm font-mono font-black text-white">{fontSize}</span>
+                  </div>
+                  <input 
+                    type="range"
+                    min="16"
+                    max="60"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-white"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-zinc-500">Toque (px)</span>
+                    <span className="text-sm font-mono font-black text-blue-400">{scrollAmount}</span>
+                  </div>
+                  <input 
+                    type="range"
+                    min="50"
+                    max="500"
+                    step="10"
+                    value={scrollAmount}
+                    onChange={(e) => setScrollAmount(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-blue-400"
+                  />
+                </div>
+              </div>
 
-            <button 
-              onClick={nextSong}
-              disabled={currentIndex === songs.length - 1}
-              className="p-4 bg-zinc-900/80 hover:bg-orange-500 hover:text-black rounded-2xl transition-all disabled:opacity-20 disabled:hover:bg-zinc-900/80 disabled:hover:text-white"
-            >
-              <ChevronRight size={32} />
-            </button>
-          </motion.div>
+              {/* Main Controls */}
+              <div className="flex items-center gap-2 bg-zinc-900/90 backdrop-blur-md p-2 rounded-[10px] border border-white/10 shadow-2xl">
+                <button 
+                  onClick={prevSong}
+                  disabled={currentIndex === 0}
+                  className="p-3 text-white disabled:opacity-20 hover:bg-white/5 rounded-lg transition-colors"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+
+                <button 
+                  onClick={() => isScrolling ? stopScroll() : startScroll()}
+                  className={cn(
+                    "px-6 py-3 rounded-[8px] flex items-center gap-2 font-black text-[10px] uppercase tracking-widest transition-all",
+                    isScrolling ? "bg-red-600 text-white" : "bg-white text-black"
+                  )}
+                >
+                  {isScrolling ? (
+                    <><Pause size={14} fill="currentColor" /> Parar</>
+                  ) : (
+                    <><Play size={14} fill="currentColor" /> Iniciar</>
+                  )}
+                </button>
+
+                <button 
+                  onClick={nextSong}
+                  disabled={currentIndex === songs.length - 1}
+                  className="p-3 text-white disabled:opacity-20 hover:bg-white/5 rounded-lg transition-colors"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+
+              {/* Status Info */}
+              <div className="bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full border border-white/5 text-[8px] font-black uppercase tracking-widest text-zinc-500">
+                {currentIndex + 1} / {songs.length} • {isWakeLocked ? 'Wake Lock ON' : 'Wake Lock OFF'}
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

@@ -70,24 +70,24 @@ export default function ChordVisualizer({ chord, onClose }: ChordVisualizerProps
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm"
           onClick={onClose}
         >
           <div 
-            className="bg-zinc-900 border border-zinc-800 rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl"
+            className="bg-zinc-900 border border-zinc-800 rounded-3xl sm:rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
-            <div className="p-8 flex flex-col items-center">
-              <div className="w-full flex justify-between items-start mb-6">
+            <div className="p-6 sm:p-8 flex flex-col items-center">
+              <div className="w-full flex justify-between items-start mb-4 sm:mb-6">
                 <div className="flex flex-col">
-                  <h2 className="text-5xl font-black text-white tracking-tighter">{chord}</h2>
-                  <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1">Diagrama de Acorde</p>
+                  <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tighter">{chord}</h2>
+                  <p className="text-zinc-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest mt-1">Diagrama de Acorde</p>
                 </div>
                 <button 
                   onClick={onClose}
                   className="p-2 bg-zinc-800 text-zinc-400 rounded-full hover:text-white transition-colors"
                 >
-                  <X size={24} />
+                  <X size={20} className="sm:size-6" />
                 </button>
               </div>
 

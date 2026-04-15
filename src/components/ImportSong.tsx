@@ -171,67 +171,64 @@ Eu [Bm7]vou te bus[Em]car na frente do [C]mar
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
-      <div className="h-20 bg-zinc-900/50 backdrop-blur-xl flex items-center justify-between px-8 border-b border-zinc-800 shrink-0">
-        <button onClick={onClose} className="p-3 text-zinc-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all">
+      <div className="h-16 sm:h-20 bg-zinc-900/50 backdrop-blur-xl flex items-center justify-between px-4 sm:px-8 border-b border-zinc-800 shrink-0">
+        <button onClick={onClose} className="p-2 sm:p-3 text-zinc-400 hover:text-white hover:bg-white/5 rounded-xl sm:rounded-2xl transition-all">
           <X size={24} />
         </button>
         <div className="flex flex-col items-center">
-          <h2 className="text-white font-black tracking-tight text-lg">Nova Música</h2>
-          <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Importar ou Criar</p>
+          <h2 className="text-white font-black tracking-tight text-base sm:text-lg">Nova Música</h2>
+          <p className="text-[8px] sm:text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Importar ou Criar</p>
         </div>
         <button 
           onClick={handleSave}
-          className="bg-orange-500 text-black px-8 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_10px_30px_rgba(249,115,22,0.3)]"
+          className="bg-orange-500 text-black px-4 sm:px-8 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_10px_30px_rgba(249,115,22,0.3)]"
         >
           Salvar
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
         <AnimatePresence>
           {error && (
             <motion.div 
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-red-500/10 border border-red-500/50 p-4 rounded-xl flex items-center gap-3 text-red-500"
+              className="bg-red-500/10 border border-red-500/50 p-3 sm:p-4 rounded-xl flex items-center gap-3 text-red-500"
             >
-              <AlertCircle size={20} />
-              <span className="text-sm font-medium">{error}</span>
+              <AlertCircle size={18} className="sm:size-5" />
+              <span className="text-xs sm:text-sm font-medium">{error}</span>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="flex gap-4">
+        <div className="flex gap-3 sm:gap-4">
           <div className="flex-1 flex flex-col gap-2">
             <button 
               onClick={handleAISearch}
               disabled={isSearchingAI || !title.trim()}
-              className="w-full bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl flex flex-col items-center gap-3 hover:bg-zinc-800 transition-all disabled:opacity-50 group shadow-xl"
+              className="w-full bg-zinc-900/50 border border-zinc-800 p-4 sm:p-6 rounded-2xl sm:rounded-3xl flex flex-col items-center gap-2 sm:gap-3 hover:bg-zinc-800 transition-all disabled:opacity-50 group shadow-xl"
             >
               {isSearchingAI ? (
                 <>
-                  <Loader2 size={32} className="text-orange-500 animate-spin" />
-                  <span className="text-[10px] text-orange-500 animate-pulse font-black uppercase tracking-widest">Buscando Versão Exata...</span>
+                  <Loader2 size={24} className="text-orange-500 animate-spin sm:size-8" />
+                  <span className="text-[8px] sm:text-[10px] text-orange-500 animate-pulse font-black uppercase tracking-widest">Buscando...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles size={32} className="text-orange-500 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-black text-zinc-300 uppercase tracking-widest">Buscar com IA</span>
+                  <Sparkles size={24} className="text-orange-500 group-hover:scale-110 transition-transform sm:size-8" />
+                  <span className="text-[10px] sm:text-xs font-black text-zinc-300 uppercase tracking-widest">IA</span>
                 </>
               )}
             </button>
-            <p className="text-[10px] text-zinc-600 text-center px-4 font-medium leading-relaxed">
-              Dica: Preencha o <b>Artista</b> para resultados mais precisos.
-            </p>
           </div>
           <button 
             onClick={mockImport}
             disabled={isParsing}
-            className="flex-1 bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl flex flex-col items-center gap-3 hover:bg-zinc-800 transition-all disabled:opacity-50 h-fit shadow-xl group"
+            className="flex-1 bg-zinc-900/50 border border-zinc-800 p-4 sm:p-6 rounded-2xl sm:rounded-3xl flex flex-col items-center gap-2 sm:gap-3 hover:bg-zinc-800 transition-all disabled:opacity-50 h-fit shadow-xl group"
           >
-            <Search size={32} className="text-zinc-500 group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-black text-zinc-300 uppercase tracking-widest">Exemplo</span>
+            <Search size={24} className="text-zinc-500 group-hover:scale-110 transition-transform sm:size-8" />
+            <span className="text-[10px] sm:text-xs font-black text-zinc-300 uppercase tracking-widest">Exemplo</span>
           </button>
         </div>
 

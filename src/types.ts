@@ -1,5 +1,6 @@
 export interface Song {
   id: string;
+  userId?: string;
   title: string;
   artist: string;
   originalKey: string;
@@ -15,7 +16,15 @@ export interface Song {
 
 export interface Setlist {
   id: string;
+  userId?: string;
   name: string;
   songIds: string[];
+  createdAt: number;
+}
+
+export interface Artist {
+  id: string;
+  userId?: string;
+  name: string;
   createdAt: number;
 }

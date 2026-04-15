@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Plus, Heart, Music, ListMusic, MoreVertical, Play, Trash2, ChevronLeft, GripVertical, X, LogOut, Edit2, Check } from 'lucide-react';
-import { Song, Setlist } from '../types';
+import { Search, Plus, Heart, Music, ListMusic, MoreVertical, Play, Trash2, ChevronLeft, GripVertical, X, LogOut, Edit2, Check, RefreshCw } from 'lucide-react';
+import { Song, Setlist, Artist } from '../types';
 import { cn } from '../lib/utils';
 import { motion, Reorder, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 interface SongListProps {
   songs: Song[];
   setlists: Setlist[];
+  artists: Artist[];
   onSelectSong: (song: Song) => void;
   onSelectSetlist: (setlist: Setlist) => void;
   onStartSetlistShow: (setlist: Setlist) => void;
@@ -15,19 +16,27 @@ interface SongListProps {
   onToggleFavorite: (id: string) => void;
   onAddToSetlist: (songId: string, setlistId: string) => void;
   onCreateSetlist: (name: string) => void;
+  onCreateArtist: (name: string) => void;
   onRemoveFromSetlist: (songId: string, setlistId: string) => void;
   onReorderSetlist: (setlistId: string, newSongIds: string[]) => void;
   onDeleteSong: (id: string) => void;
   onDeleteSetlist: (id: string) => void;
+  onDeleteArtist: (id: string) => void;
   onUpdateSetlist: (id: string, updates: Partial<Setlist>) => void;
+  onUpdateArtist: (id: string, updates: Partial<Artist>) => void;
+  onSyncArtistSongs: (artist: Artist) => void;
   onSelectSongFromSetlist: (song: Song, setlist: Setlist) => void;
   selectedSetlistId: string | null;
   onSelectedSetlistIdChange: (id: string | null) => void;
+  selectedArtistId: string | null;
+  onSelectedArtistIdChange: (id: string | null) => void;
+  onShowAuth: () => void;
 }
 
 export default function SongList({ 
   songs, 
   setlists, 
+  artists,
   onSelectSong, 
   onSelectSetlist, 
   onStartSetlistShow,
@@ -35,25 +44,40 @@ export default function SongList({
   onToggleFavorite,
   onAddToSetlist,
   onCreateSetlist,
+  onCreateArtist,
   onRemoveFromSetlist,
   onReorderSetlist,
   onDeleteSong,
   onDeleteSetlist,
+  onDeleteArtist,
   onUpdateSetlist,
+  onUpdateArtist,
+  onSyncArtistSongs,
   onSelectSongFromSetlist,
   selectedSetlistId,
-  onSelectedSetlistIdChange
+  onSelectedSetlistIdChange,
+  selectedArtistId,
+  onSelectedArtistIdChange,
+  onShowAuth
 }: SongListProps) {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'all' | 'favorites' | 'setlists'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'favorites' | 'setlists' | 'artists'>('all');
+  const [tabOrder, setTabOrder] = useState<('all' | 'favorites' | 'setlists' | 'artists')[]>(() => {
+    const saved = localStorage.getItem('livechord_tab_order');
+    return saved ? JSON.parse(saved) : ['all', 'favorites', 'setlists', 'artists'];
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [showSetlistSelector, setShowSetlistSelector] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showDeleteSetlistConfirm, setShowDeleteSetlistConfirm] = useState<string | null>(null);
+  const [showDeleteArtistConfirm, setShowDeleteArtistConfirm] = useState<string | null>(null);
   const [newSetlistName, setNewSetlistName] = useState('');
+  const [newArtistName, setNewArtistName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingArtistName, setIsEditingArtistName] = useState(false);
   const [tempName, setTempName] = useState('');
   const [isCreatingSetlist, setIsCreatingSetlist] = useState(false);
+  const [isCreatingArtist, setIsCreatingArtist] = useState(false);
 
   const filteredSongs = songs.filter(song => {
     const query = searchQuery.toLowerCase();
@@ -75,6 +99,125 @@ export default function SongList({
   const selectedSetlist = setlists.find(s => s.id === selectedSetlistId);
   const setlistSongs = selectedSetlist ? selectedSetlist.songIds.map(id => songs.find(s => s.id === id)).filter(Boolean) as Song[] : [];
 
+  const selectedArtist = artists.find(a => a.id === selectedArtistId);
+  const artistSongs = selectedArtist ? songs.filter(s => s.artist === selectedArtist.name) : [];
+
+  if (selectedArtist) {
+    const handleSaveArtistName = () => {
+      if (tempName.trim() && selectedArtist) {
+        onUpdateArtist(selectedArtist.id, { name: tempName.trim() });
+        setIsEditingArtistName(false);
+      }
+    };
+
+    const startEditingArtist = () => {
+      setTempName(selectedArtist.name);
+      setIsEditingArtistName(true);
+    };
+
+    return (
+      <div className="flex flex-col h-full bg-black text-white">
+        <div className="p-4 sm:p-6 pb-2">
+          <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <button 
+              onClick={() => {
+                onSelectedArtistIdChange(null);
+                setIsEditingArtistName(false);
+              }}
+              className="p-2 hover:bg-zinc-900 rounded-full transition-colors shrink-0"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <div className="flex-1 min-w-0">
+              {isEditingArtistName ? (
+                <div className="flex items-center gap-2">
+                  <input 
+                    autoFocus
+                    type="text"
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveArtistName()}
+                    onBlur={handleSaveArtistName}
+                    className="bg-zinc-900 border border-orange-500/50 rounded-lg px-3 py-1 text-lg sm:text-xl font-black text-white focus:outline-none w-full"
+                  />
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button 
+                      onClick={handleSaveArtistName}
+                      className="p-2 text-orange-500 hover:bg-orange-500/10 rounded-lg transition-colors"
+                    >
+                      <Check size={20} />
+                    </button>
+                    <button 
+                      onClick={() => setIsEditingArtistName(false)}
+                      className="p-2 text-zinc-500 hover:bg-zinc-500/10 rounded-lg transition-colors"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 group">
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white truncate">{selectedArtist.name}</h1>
+                  <button 
+                    onClick={startEditingArtist}
+                    className="p-1.5 text-zinc-600 hover:text-orange-500 sm:opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                </div>
+              )}
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-[9px] sm:text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{artistSongs.length} músicas</p>
+                <span className="w-1 h-1 rounded-full bg-zinc-800" />
+                <span className="text-[9px] sm:text-[10px] text-zinc-600 font-medium">Pasta de Artista</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button 
+                onClick={() => setShowDeleteArtistConfirm(selectedArtist.id)}
+                className="p-2 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                title="Excluir Pasta"
+              >
+                <Trash2 size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 pb-20">
+          <div className="space-y-2">
+            {artistSongs.map((song) => (
+              <div 
+                key={song.id} 
+                onClick={() => onSelectSong(song)}
+                className="bg-zinc-900/50 rounded-2xl flex items-center gap-4 p-4 border border-zinc-800/50 group cursor-pointer hover:bg-zinc-900 transition-colors"
+              >
+                <div className="w-10 h-10 bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-500 group-hover:text-orange-500 transition-colors">
+                  <Music size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold truncate">{song.title}</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="px-1 py-0.5 bg-orange-500/10 text-orange-500 rounded text-[8px] font-bold border border-orange-500/20">
+                      {song.currentKey}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {artistSongs.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 text-zinc-600">
+              <Music size={48} className="mb-4 opacity-20" />
+              <p>Nenhuma música vinculada a este artista</p>
+              <p className="text-xs mt-2">Músicas com o nome "{selectedArtist.name}" aparecerão aqui.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (selectedSetlist) {
     const handleSaveName = () => {
       if (tempName.trim() && selectedSetlist) {
@@ -90,77 +233,80 @@ export default function SongList({
 
     return (
       <div className="flex flex-col h-full bg-black text-white">
-        <div className="p-6 pb-2">
-          <div className="flex items-center gap-4 mb-6">
+        <div className="p-4 sm:p-6 pb-2">
+          <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
             <button 
               onClick={() => {
                 onSelectedSetlistIdChange(null);
                 setIsEditingName(false);
               }}
-              className="p-2 hover:bg-zinc-900 rounded-full transition-colors"
+              className="p-2 hover:bg-zinc-900 rounded-full transition-colors shrink-0"
             >
               <ChevronLeft size={24} />
             </button>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               {isEditingName ? (
                 <div className="flex items-center gap-2">
-                  <input
+                  <input 
                     autoFocus
                     type="text"
                     value={tempName}
                     onChange={(e) => setTempName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
                     onBlur={handleSaveName}
-                    className="bg-zinc-900 border border-orange-500/50 rounded-lg px-3 py-1 text-xl font-black text-white focus:outline-none w-full"
+                    className="bg-zinc-900 border border-orange-500/50 rounded-lg px-3 py-1 text-lg sm:text-xl font-black text-white focus:outline-none w-full"
                   />
-                  <button 
-                    onClick={handleSaveName}
-                    className="p-2 text-orange-500 hover:bg-orange-500/10 rounded-lg transition-colors"
-                  >
-                    <Check size={20} />
-                  </button>
-                  <button 
-                    onClick={() => setIsEditingName(false)}
-                    className="p-2 text-zinc-500 hover:bg-zinc-500/10 rounded-lg transition-colors"
-                  >
-                    <X size={20} />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button 
+                      onClick={handleSaveName}
+                      className="p-2 text-orange-500 hover:bg-orange-500/10 rounded-lg transition-colors"
+                    >
+                      <Check size={20} />
+                    </button>
+                    <button 
+                      onClick={() => setIsEditingName(false)}
+                      className="p-2 text-zinc-500 hover:bg-zinc-500/10 rounded-lg transition-colors"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 group">
-                  <h1 className="text-2xl font-black tracking-tight text-white">{selectedSetlist.name}</h1>
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white truncate">{selectedSetlist.name}</h1>
                   <button 
                     onClick={startEditing}
-                    className="p-1.5 text-zinc-600 hover:text-orange-500 opacity-0 group-hover:opacity-100 transition-all"
+                    className="p-1.5 text-zinc-600 hover:text-orange-500 sm:opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <Edit2 size={14} />
                   </button>
                 </div>
               )}
               <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{setlistSongs.length} músicas</p>
+                <p className="text-[9px] sm:text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{setlistSongs.length} músicas</p>
                 <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                <span className="text-[10px] text-zinc-600 font-medium">Criado em {new Date(selectedSetlist.createdAt).toLocaleDateString()}</span>
+                <span className="text-[9px] sm:text-[10px] text-zinc-600 font-medium">Criado em {new Date(selectedSetlist.createdAt).toLocaleDateString()}</span>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <button 
                 onClick={() => setShowDeleteSetlistConfirm(selectedSetlist.id)}
-                className="p-2.5 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                className="p-2 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
                 title="Excluir Setlist"
               >
                 <Trash2 size={20} />
               </button>
               <button 
                 onClick={() => onStartSetlistShow(selectedSetlist)}
-                className="bg-orange-500 text-black px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(249,115,22,0.2)]"
+                className="bg-orange-500 text-black px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(249,115,22,0.2)]"
               >
                 <Play size={14} fill="currentColor" />
-                <span>Iniciar Show</span>
+                <span className="hidden xs:inline">Iniciar Show</span>
               </button>
             </div>
           </div>
         </div>
+
 
         <div className="flex-1 overflow-y-auto px-6 pb-20">
           <Reorder.Group 
@@ -215,52 +361,68 @@ export default function SongList({
   return (
     <div className="flex flex-col h-full bg-black text-white">
       {/* Header */}
-      <div className="p-8 pb-4">
-        <div className="flex items-center justify-between mb-8">
+      <div className="p-6 sm:p-8 pb-4">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div className="flex flex-col">
-            <h1 className="text-4xl font-black tracking-tighter">
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">
               <span className="text-orange-500">Live</span>
               <span className="text-white">Chord</span>
             </h1>
             <div className="flex items-center gap-2 mt-1">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">Performance Mode</p>
+              <p className="text-[8px] sm:text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">Performance Mode</p>
               <span className="w-1 h-1 rounded-full bg-zinc-800" />
-              <p className="text-[10px] text-orange-500/80 font-bold uppercase tracking-widest">{user?.displayName || user?.email?.split('@')[0]}</p>
+              {user ? (
+                <p className="text-[8px] sm:text-[10px] text-orange-500/80 font-bold uppercase tracking-widest truncate max-w-[100px] sm:max-w-none">
+                  {user.displayName || user.email?.split('@')[0]}
+                </p>
+              ) : (
+                <p className="text-[8px] sm:text-[10px] text-zinc-600 font-bold uppercase tracking-widest">Guest Mode</p>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={logout}
-              className="w-12 h-12 bg-zinc-900 text-zinc-500 rounded-2xl flex items-center justify-center hover:text-white hover:bg-zinc-800 transition-all overflow-hidden"
-              title="Sair"
-            >
-              {user?.photoURL ? (
-                <img 
-                  src={user.photoURL} 
-                  alt={user.displayName || 'User'} 
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <LogOut size={20} />
-              )}
-            </button>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {!user && (
+              <button 
+                onClick={onShowAuth}
+                className="px-3 sm:px-4 py-2 sm:py-2.5 bg-zinc-900 text-white rounded-xl sm:rounded-2xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest hover:bg-zinc-800 transition-all border border-zinc-800"
+              >
+                Entrar
+              </button>
+            )}
+            {user && (
+              <button 
+                onClick={logout}
+                className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-900 text-zinc-500 rounded-xl sm:rounded-2xl flex items-center justify-center hover:text-white hover:bg-zinc-800 transition-all overflow-hidden"
+                title="Sair"
+              >
+                {user.photoURL ? (
+                  <img 
+                    src={user.photoURL} 
+                    alt={user.displayName || 'User'} 
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <LogOut size={18} className="sm:size-5" />
+                )}
+              </button>
+            )}
             <button 
               onClick={onAddSong}
-              className="w-12 h-12 bg-orange-500 text-black rounded-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(249,115,22,0.2)]"
+              className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-500 text-black rounded-xl sm:rounded-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(249,115,22,0.2)]"
             >
-              <Plus size={28} />
+              <Plus size={24} className="sm:size-7" />
             </button>
           </div>
         </div>
 
         {/* Search */}
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
           <input 
             type="text"
-            placeholder="Buscar por nome, artista ou tom (ex: C#)..."
-            className="w-full bg-zinc-900 border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-white/20 transition-all"
+            placeholder="Buscar por nome, artista ou tom..."
+            className="w-full bg-zinc-900 border-none rounded-xl py-2.5 sm:py-3 pl-10 pr-4 text-xs sm:text-sm focus:ring-2 focus:ring-white/20 transition-all"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -309,35 +471,36 @@ export default function SongList({
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-6 mb-6">
-          <button 
-            onClick={() => setActiveTab('all')}
-            className={cn(
-              "text-xs font-black uppercase tracking-widest pb-2 transition-all border-b-2",
-              activeTab === 'all' ? "border-orange-500 text-white" : "border-transparent text-zinc-600 hover:text-zinc-400"
-            )}
-          >
-            Músicas
-          </button>
-          <button 
-            onClick={() => setActiveTab('favorites')}
-            className={cn(
-              "text-xs font-black uppercase tracking-widest pb-2 transition-all border-b-2",
-              activeTab === 'favorites' ? "border-orange-500 text-white" : "border-transparent text-zinc-600 hover:text-zinc-400"
-            )}
-          >
-            Favoritos
-          </button>
-          <button 
-            onClick={() => setActiveTab('setlists')}
-            className={cn(
-              "text-xs font-black uppercase tracking-widest pb-2 transition-all border-b-2",
-              activeTab === 'setlists' ? "border-orange-500 text-white" : "border-transparent text-zinc-600 hover:text-zinc-400"
-            )}
-          >
-            Setlists
-          </button>
-        </div>
+        <Reorder.Group 
+          axis="x" 
+          values={tabOrder} 
+          onReorder={(newOrder) => {
+            setTabOrder(newOrder);
+            localStorage.setItem('livechord_tab_order', JSON.stringify(newOrder));
+          }}
+          className="flex items-center gap-6 mb-6 overflow-x-auto scrollbar-hide"
+        >
+          {tabOrder.map((tab) => (
+            <Reorder.Item 
+              key={tab} 
+              value={tab}
+              className="shrink-0"
+              whileDrag={{ scale: 1.1, opacity: 0.8 }}
+            >
+              <button 
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "text-xs font-black uppercase tracking-widest pb-2 transition-all border-b-2 cursor-grab active:cursor-grabbing",
+                  activeTab === tab ? "border-orange-500 text-white" : "border-transparent text-zinc-600 hover:text-zinc-400"
+                )}
+              >
+                {tab === 'all' ? 'Músicas' : 
+                 tab === 'favorites' ? 'Favoritos' : 
+                 tab === 'setlists' ? 'Setlists' : 'Artistas'}
+              </button>
+            </Reorder.Item>
+          ))}
+        </Reorder.Group>
       </div>
 
       {/* Content */}
@@ -398,10 +561,10 @@ export default function SongList({
             )}
 
             {setlists.map(setlist => (
-              <button 
+              <div 
                 key={setlist.id}
                 onClick={() => onSelectedSetlistIdChange(setlist.id)}
-                className="bg-zinc-900 p-4 rounded-2xl flex items-center gap-4 hover:bg-zinc-800 transition-colors group text-left"
+                className="bg-zinc-900 p-4 rounded-2xl flex items-center gap-4 hover:bg-zinc-800 transition-colors group text-left cursor-pointer"
               >
                 <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors">
                   <ListMusic size={24} />
@@ -433,7 +596,7 @@ export default function SongList({
                   >
                     <Trash2 size={18} />
                   </button>
-                  <div 
+                  <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       onStartSetlistShow(setlist);
@@ -442,9 +605,9 @@ export default function SongList({
                     title="Iniciar Show"
                   >
                     <Play size={18} fill="currentColor" />
-                  </div>
+                  </button>
                 </div>
-              </button>
+              </div>
             ))}
             {setlists.length === 0 && (
               <div className="flex flex-col items-center justify-center py-32 text-zinc-600">
@@ -462,54 +625,177 @@ export default function SongList({
               </div>
             )}
           </div>
+        ) : activeTab === 'artists' ? (
+          <div className="grid gap-3">
+            <button 
+              onClick={() => setIsCreatingArtist(true)}
+              className="bg-zinc-900/50 border-2 border-dashed border-zinc-800 p-4 rounded-2xl flex items-center gap-4 hover:border-zinc-700 transition-colors group text-left"
+            >
+              <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-500 group-hover:text-white transition-colors">
+                <Plus size={24} />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold">Nova Pasta de Artista</h3>
+                <p className="text-xs text-zinc-500">Agrupe músicas por artista</p>
+              </div>
+            </button>
+
+            {isCreatingArtist && (
+              <div className="bg-zinc-900 p-4 rounded-2xl border border-orange-500/30">
+                <input 
+                  autoFocus
+                  type="text"
+                  placeholder="Nome do Artista (ex: Legião Urbana)"
+                  className="w-full bg-black border border-zinc-800 rounded-xl py-2 px-4 text-sm mb-3 focus:ring-1 focus:ring-orange-500 outline-none"
+                  value={newArtistName}
+                  onChange={(e) => setNewArtistName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newArtistName.trim()) {
+                      onCreateArtist(newArtistName);
+                      setNewArtistName('');
+                      setIsCreatingArtist(false);
+                    }
+                  }}
+                />
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => {
+                      if (newArtistName.trim()) {
+                        onCreateArtist(newArtistName);
+                        setNewArtistName('');
+                        setIsCreatingArtist(false);
+                      }
+                    }}
+                    className="flex-1 bg-orange-500 text-black font-bold py-2 rounded-xl text-xs"
+                  >
+                    Criar
+                  </button>
+                  <button 
+                    onClick={() => setIsCreatingArtist(false)}
+                    className="flex-1 bg-zinc-800 text-white font-bold py-2 rounded-xl text-xs"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {artists.map(artist => {
+              const count = songs.filter(s => s.artist === artist.name).length;
+              return (
+                <div 
+                  key={artist.id}
+                  onClick={() => onSelectedArtistIdChange(artist.id)}
+                  className="bg-zinc-900 p-4 rounded-2xl flex items-center gap-4 hover:bg-zinc-800 transition-colors group text-left cursor-pointer"
+                >
+                  <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors">
+                    <Music size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold">{artist.name}</h3>
+                    <p className="text-xs text-zinc-500">{count} músicas</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSyncArtistSongs(artist);
+                      }}
+                      className="w-10 h-10 rounded-xl bg-zinc-800/50 text-zinc-500 flex items-center justify-center hover:text-blue-500 hover:bg-blue-500/10 transition-all"
+                      title="Sincronizar Músicas"
+                    >
+                      <RefreshCw size={18} />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectedArtistIdChange(artist.id);
+                        setTempName(artist.name);
+                        setIsEditingArtistName(true);
+                      }}
+                      className="w-10 h-10 rounded-xl bg-zinc-800/50 text-zinc-500 flex items-center justify-center hover:text-orange-500 hover:bg-orange-500/10 transition-all"
+                      title="Renomear Artista"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDeleteArtistConfirm(artist.id);
+                      }}
+                      className="w-10 h-10 rounded-xl bg-zinc-800/50 text-zinc-500 flex items-center justify-center hover:text-red-500 hover:bg-red-500/10 transition-all"
+                      title="Excluir Artista"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {artists.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-32 text-zinc-600">
+                <div className="w-20 h-20 bg-zinc-900 rounded-3xl flex items-center justify-center mb-6 border border-zinc-800/50">
+                  <Music size={40} className="opacity-20" />
+                </div>
+                <p className="font-bold text-zinc-500">Nenhuma pasta de artista</p>
+                <p className="text-xs text-zinc-600 mt-1">Organize suas músicas criando pastas por artista.</p>
+                <button 
+                  onClick={() => setIsCreatingArtist(true)}
+                  className="mt-6 text-orange-500 text-xs font-black uppercase tracking-widest hover:text-orange-400 transition-colors"
+                >
+                  + Criar Primeira Pasta
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="grid gap-1">
             {filteredSongs.map(song => (
               <div 
                 key={song.id}
-                className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-900/40 hover:bg-zinc-900 border border-zinc-800/50 hover:border-zinc-700 transition-all group mb-2"
+                className="flex items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-900/40 hover:bg-zinc-900 border border-zinc-800/50 hover:border-zinc-700 transition-all group mb-1 sm:mb-2"
               >
                 <button 
                   onClick={() => onSelectSong(song)}
-                  className="flex-1 flex items-center gap-4 text-left"
+                  className="flex-1 flex items-center gap-3 sm:gap-4 text-left min-w-0"
                 >
-                  <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center text-zinc-500 group-hover:text-orange-500 transition-colors shrink-0">
-                    <Music size={24} />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-800 rounded-lg sm:rounded-xl flex items-center justify-center text-zinc-500 group-hover:text-orange-500 transition-colors shrink-0">
+                    <Music size={20} className="sm:size-6" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-base truncate group-hover:text-white transition-colors">{song.title}</h3>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-xs text-zinc-500 truncate">{song.artist}</p>
+                    <h3 className="font-bold text-sm sm:text-base truncate group-hover:text-white transition-colors">{song.title}</h3>
+                    <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
+                      <p className="text-[10px] sm:text-xs text-zinc-500 truncate">{song.artist}</p>
                       <span className="w-1 h-1 rounded-full bg-zinc-700" />
-                      <span className="px-1.5 py-0.5 bg-orange-500/10 text-orange-500 rounded text-[10px] font-bold border border-orange-500/20">
+                      <span className="px-1 py-0.5 bg-orange-500/10 text-orange-500 rounded text-[8px] sm:text-[10px] font-bold border border-orange-500/20">
                         {song.currentKey}
                       </span>
                     </div>
                   </div>
                 </button>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
                   <button 
                     onClick={() => setShowSetlistSelector(song.id)}
-                    className="p-2.5 text-zinc-500 hover:text-orange-500 hover:bg-orange-500/10 rounded-full transition-all"
+                    className="p-2 sm:p-2.5 text-zinc-500 hover:text-orange-500 hover:bg-orange-500/10 rounded-full transition-all"
                     title="Adicionar à Setlist"
                   >
-                    <ListMusic size={20} />
+                    <ListMusic size={18} className="sm:size-5" />
                   </button>
                   <button 
                     onClick={() => onToggleFavorite(song.id)}
                     className={cn(
-                      "p-2.5 rounded-full transition-all",
+                      "p-2 sm:p-2.5 rounded-full transition-all",
                       song.isFavorite ? "text-red-500 bg-red-500/10" : "text-zinc-500 hover:text-red-400 hover:bg-red-500/5"
                     )}
                   >
-                    <Heart size={20} fill={song.isFavorite ? "currentColor" : "none"} />
+                    <Heart size={18} className="sm:size-5" fill={song.isFavorite ? "currentColor" : "none"} />
                   </button>
                   <button 
                     onClick={() => setShowDeleteConfirm(song.id)}
-                    className="p-2.5 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all"
+                    className="p-2 sm:p-2.5 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all"
                     title="Excluir Música"
                   >
-                    <Trash2 size={20} />
+                    <Trash2 size={18} className="sm:size-5" />
                   </button>
                 </div>
               </div>
@@ -535,22 +821,22 @@ export default function SongList({
 
       {/* Setlist Selector Modal */}
       {showSetlistSelector && (
-        <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-4">
+        <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div 
             className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
             onClick={() => setShowSetlistSelector(null)}
           />
-          <div className="relative w-full max-w-md bg-zinc-900/90 backdrop-blur-2xl rounded-[2.5rem] border border-zinc-800 overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)]">
-            <div className="p-8 border-b border-zinc-800 flex items-center justify-between">
+          <div className="relative w-full max-w-md bg-zinc-900/90 backdrop-blur-2xl rounded-t-[2rem] sm:rounded-[2.5rem] border-t sm:border border-zinc-800 overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)]">
+            <div className="p-6 sm:p-8 border-b border-zinc-800 flex items-center justify-between">
               <div className="flex flex-col">
-                <h3 className="font-black text-xl text-white tracking-tight">Adicionar à Setlist</h3>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-0.5">Escolha uma lista</p>
+                <h3 className="font-black text-lg sm:text-xl text-white tracking-tight">Adicionar à Setlist</h3>
+                <p className="text-[9px] sm:text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-0.5">Escolha uma lista</p>
               </div>
               <button onClick={() => setShowSetlistSelector(null)} className="p-2 text-zinc-500 hover:text-white hover:bg-white/5 rounded-xl transition-all">
                 <Plus size={24} className="rotate-45" />
               </button>
             </div>
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 max-h-[60vh] overflow-y-auto">
               {setlists.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -682,6 +968,40 @@ export default function SongList({
               </button>
               <button 
                 onClick={() => setShowDeleteSetlistConfirm(null)}
+                className="w-full py-3 bg-zinc-800 text-white font-bold rounded-xl text-sm active:scale-95 transition-transform"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Artist Confirmation Modal */}
+      {showDeleteArtistConfirm && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/90 backdrop-blur-md" 
+            onClick={() => setShowDeleteArtistConfirm(null)}
+          />
+          <div className="relative w-full max-w-xs bg-zinc-900 rounded-3xl border border-red-500/20 p-6 text-center shadow-2xl">
+            <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={32} />
+            </div>
+            <h3 className="text-lg font-bold mb-2">Excluir Pasta?</h3>
+            <p className="text-sm text-zinc-500 mb-6">Esta ação removerá apenas a pasta, suas músicas continuarão salvas.</p>
+            <div className="flex flex-col gap-2">
+              <button 
+                onClick={() => {
+                  onDeleteArtist(showDeleteArtistConfirm);
+                  setShowDeleteArtistConfirm(null);
+                }}
+                className="w-full py-3 bg-red-500 text-white font-bold rounded-xl text-sm active:scale-95 transition-transform"
+              >
+                Sim, Excluir
+              </button>
+              <button 
+                onClick={() => setShowDeleteArtistConfirm(null)}
                 className="w-full py-3 bg-zinc-800 text-white font-bold rounded-xl text-sm active:scale-95 transition-transform"
               >
                 Cancelar
