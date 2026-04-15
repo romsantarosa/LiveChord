@@ -101,7 +101,8 @@ export default function App() {
   useEffect(() => {
     if (!user) {
       // Load from local storage if not logged in
-      setSongs(storage.getSongs());
+      const localSongs = storage.getSongs();
+      setSongs(localSongs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
       return;
     }
 
@@ -115,7 +116,8 @@ export default function App() {
         id: doc.id,
         ...doc.data()
       })) as Song[];
-      setSongs(songsData);
+      // Sort client-side to include songs that don't have the createdAt field yet
+      setSongs(songsData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'songs');
     });
@@ -133,8 +135,7 @@ export default function App() {
 
     const q = query(
       collection(db, 'setlists'), 
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -142,7 +143,8 @@ export default function App() {
         id: doc.id,
         ...doc.data()
       })) as Setlist[];
-      setSetlists(setlistsData);
+      // Sort client-side to include setlists that don't have the createdAt field yet
+      setSetlists(setlistsData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'setlists');
     });
@@ -224,9 +226,10 @@ export default function App() {
   };
 
   const handleAddSong = async (newSong: Song) => {
+    const songWithTimestamp = { ...newSong, createdAt: Date.now() };
     if (!user) {
       const allSongs = storage.getSongs();
-      const updatedSongs = [...allSongs, newSong];
+      const updatedSongs = [songWithTimestamp, ...allSongs];
       storage.saveSongs(updatedSongs);
       setSongs(updatedSongs);
       setIsImporting(false);
@@ -235,7 +238,7 @@ export default function App() {
 
     const path = 'songs';
     try {
-      const { id, ...data } = newSong;
+      const { id, ...data } = songWithTimestamp;
       await addDoc(collection(db, 'songs'), {
         ...data,
         userId: user.uid

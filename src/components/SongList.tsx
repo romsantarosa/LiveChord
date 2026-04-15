@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Plus, Heart, Music, ListMusic, MoreVertical, Play, Trash2, ChevronLeft, GripVertical, X, LogOut, Edit2, Check, RefreshCw } from 'lucide-react';
+import { Search, Plus, Heart, Music, ListMusic, MoreVertical, Play, Trash2, ChevronLeft, GripVertical, X, LogOut, Edit2, Check, RefreshCw, Radio } from 'lucide-react';
 import { Song, Setlist, Artist } from '../types';
 import { cn } from '../lib/utils';
 import { motion, Reorder, AnimatePresence } from 'motion/react';
@@ -300,8 +300,8 @@ export default function SongList({
                 onClick={() => onStartSetlistShow(selectedSetlist)}
                 className="bg-orange-500 text-black px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(249,115,22,0.2)]"
               >
-                <Play size={14} fill="currentColor" />
-                <span className="hidden xs:inline">Iniciar Show</span>
+                <Radio size={14} className="animate-pulse" />
+                <span className="hidden xs:inline">Live Mode</span>
               </button>
             </div>
           </div>
@@ -602,9 +602,9 @@ export default function SongList({
                       onStartSetlistShow(setlist);
                     }}
                     className="w-10 h-10 rounded-xl bg-orange-500 text-black flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-lg"
-                    title="Iniciar Show"
+                    title="Live Mode"
                   >
-                    <Play size={18} fill="currentColor" />
+                    <Radio size={18} className="animate-pulse" />
                   </button>
                 </div>
               </div>

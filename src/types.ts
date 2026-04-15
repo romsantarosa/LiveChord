@@ -12,6 +12,7 @@ export interface Song {
   isFavorite: boolean;
   bpm?: number;
   tags: string[];
+  createdAt: number;
 }
 
 export interface Setlist {
