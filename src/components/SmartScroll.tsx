@@ -110,9 +110,9 @@ export default function SmartScroll({ onScrollAction, isActive }: SmartScrollPro
   if (!isActive) return null;
 
   return (
-    <div className="fixed top-20 right-4 z-[60] flex flex-col items-end gap-2">
-      <div className="bg-zinc-900/90 backdrop-blur-md p-2 rounded-2xl border border-zinc-800 shadow-2xl flex items-center gap-3">
-        <div className="relative w-12 h-12 rounded-full overflow-hidden bg-black border border-zinc-700">
+    <div className="fixed top-20 right-4 z-[60] flex flex-col items-end gap-2 group">
+      <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md p-2 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl flex items-center gap-3 transition-all hover:bg-white dark:hover:bg-zinc-900">
+        <div className="relative w-12 h-12 rounded-full overflow-hidden bg-zinc-100 dark:bg-black border border-zinc-200 dark:border-zinc-700">
           <video 
             ref={videoRef} 
             autoPlay 
@@ -121,15 +121,15 @@ export default function SmartScroll({ onScrollAction, isActive }: SmartScrollPro
             className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
           />
           {!isLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-              <Loader2 size={16} className="text-orange-500 animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900">
+              <Loader2 size={16} className="text-sky-400 animate-spin" />
             </div>
           )}
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-orange-500 uppercase tracking-tighter">Smart Scroll Ativo</span>
-          <span className="text-[8px] text-zinc-500 uppercase">Olhar p/ baixo: Acelera</span>
-          <span className="text-[8px] text-zinc-500 uppercase">Olhar p/ cima: Pausa</span>
+          <span className="text-[10px] font-black text-sky-400 uppercase tracking-tighter">Smart Scroll Ativo</span>
+          <span className="text-[8px] text-zinc-500 dark:text-zinc-500 uppercase font-medium">Olhar p/ baixo: Acelera</span>
+          <span className="text-[8px] text-zinc-500 dark:text-zinc-500 uppercase font-medium">Olhar p/ cima: Pausa</span>
         </div>
       </div>
       {error && (

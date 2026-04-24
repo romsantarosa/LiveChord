@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { parseSong, convertToChordPro, SongLine } from '../lib/parser';
 import { transposeSong } from '../lib/transpose';
 import { cn } from '../lib/utils';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface ChordRendererProps {
   content: string;
@@ -12,27 +13,29 @@ interface ChordRendererProps {
   className?: string;
 }
 
-interface Segment {
-  chord: string | null;
-  text: string;
-}
-
-interface Word {
-  segments: Segment[];
-}
-
 /**
- * Component to render song lyrics with chords aligned above them.
- * Optimized for performance and responsive wrapping.
+ * Component to render song lyrics with chords aligned exactly above them.
+ * Uses a professional two-line approach with monospace font for perfect alignment.
  */
 export const ChordRenderer: React.FC<ChordRendererProps> = ({
   content,
   transpose = 0,
-  fontSize = 16,
+  fontSize: propFontSize,
   showChords = true,
   onChordClick,
   className
 }) => {
+  const { fontSize: globalFontSize, fontType } = useSettings();
+  
+  // Map font size strings to pixel values
+  const fontSizeMap = {
+    small: 13,
+    medium: 16,
+    large: 20,
+    huge: 26
+  };
+  
+  const fontSize = propFontSize || fontSizeMap[globalFontSize];
   // 1) Protective check for content
   if (!content) {
     return <div className="text-zinc-500 italic p-4">Música sem conteúdo</div>;
@@ -42,6 +45,7 @@ export const ChordRenderer: React.FC<ChordRendererProps> = ({
   const parsedLines = useMemo(() => {
     try {
       const safeContent = content || "";
+      // Apply transpose before parsing to ensure positions are calculated on the final text
       const transposed = transpose !== 0 ? transposeSong(safeContent, transpose) : safeContent;
       const chordPro = convertToChordPro(transposed);
       const result = parseSong(chordPro);
@@ -53,106 +57,74 @@ export const ChordRenderer: React.FC<ChordRendererProps> = ({
   }, [content, transpose]);
 
   /**
-   * Groups segments into "words" to prevent chords from breaking away from their syllables
-   * during line wrapping on mobile devices.
+   * Renders a single line of the song with chords aligned above lyrics.
+   * Guaranteed to separate chords even if they are at the same position.
    */
-  const getWords = (line: SongLine): Word[] => {
-    const segments: Segment[] = [];
-    
-    if (!line.chords || line.chords.length === 0) {
-      segments.push({ chord: null, text: line.lyrics || "" });
-    } else {
-      const sortedChords = [...line.chords].sort((a, b) => a.position - b.position);
-      
-      // Handle text before the first chord
-      if (sortedChords[0].position > 0) {
-        segments.push({ 
-          chord: null, 
-          text: line.lyrics.slice(0, sortedChords[0].position) 
-        });
-      }
-      
-      for (let i = 0; i < sortedChords.length; i++) {
-        const current = sortedChords[i];
-        const next = sortedChords[i + 1];
-        const textEnd = next ? next.position : line.lyrics.length;
-        segments.push({ 
-          chord: current.chord, 
-          text: line.lyrics.slice(current.position, textEnd) 
-        });
-      }
-    }
-
-    // Group segments into words (splitting by spaces but keeping the space with the preceding word)
-    const words: Word[] = [];
-    let currentWordSegments: Segment[] = [];
-
-    segments.forEach(seg => {
-      const parts = seg.text.split(/(\s+)/);
-      
-      parts.forEach((part, idx) => {
-        if (part === '') return;
-        
-        const isSpace = /^\s+$/.test(part);
-        
-        if (isSpace) {
-          // Add space to current word and finish it
-          currentWordSegments.push({ chord: idx === 0 ? seg.chord : null, text: part });
-          words.push({ segments: currentWordSegments });
-          currentWordSegments = [];
-        } else {
-          // If it's a new word part and we have a chord, it belongs to the start of this part
-          currentWordSegments.push({ chord: idx === 0 ? seg.chord : null, text: part });
-        }
-      });
-    });
-
-    if (currentWordSegments.length > 0) {
-      words.push({ segments: currentWordSegments });
-    }
-
-    return words;
-  };
-
   const renderLine = (line: SongLine, index: number) => {
     if (line.type === 'empty') {
-      return <div key={index} className="h-6" aria-hidden="true" />;
+      return <div key={index} className="h-4 sm:h-6" aria-hidden="true" />;
     }
 
-    const words = getWords(line);
+    if (!showChords || !line.chords || line.chords.length === 0) {
+      return (
+        <div key={index} className="mb-4 text-zinc-900 dark:text-white transition-colors" style={{ fontSize, fontFamily: `var(--font-${fontType})` }}>
+          {line.lyrics || '\u00A0'}
+        </div>
+      );
+    }
+
+    // Professional Responsive Chunking Logic:
+    // Create chunks that contain a chord and the text until the next chord.
+    // Wrap them in inline-blocks so they stay aligned even when the line wraps.
+    const chunks: { chord?: string, text: string }[] = [];
+    const sortedChords = [...line.chords].sort((a, b) => a.position - b.position);
+    
+    let lastPos = 0;
+    sortedChords.forEach((cp, i) => {
+      // Text before the first chord or between chords
+      if (cp.position > lastPos) {
+        if (chunks.length === 0) {
+          chunks.push({ text: line.lyrics.substring(0, cp.position) });
+        } else {
+          chunks[chunks.length - 1].text += line.lyrics.substring(lastPos, cp.position);
+        }
+      }
+      
+      chunks.push({ chord: cp.chord, text: '' });
+      lastPos = cp.position;
+    });
+
+    // Remaining text
+    if (lastPos < line.lyrics.length) {
+      if (chunks.length === 0) {
+        chunks.push({ text: line.lyrics });
+      } else {
+        chunks[chunks.length - 1].text += line.lyrics.substring(lastPos);
+      }
+    }
 
     return (
       <div 
         key={index} 
         className={cn(
-          "flex flex-wrap items-end leading-none select-none", 
-          showChords ? "mb-6 mt-2" : "mb-2"
+          "select-none w-full flex flex-wrap items-end mb-6 theme-transition", 
+          `font-${fontType}`
         )}
+        style={{ lineHeight: 1.6, fontSize }}
       >
-        {words.map((word, wIdx) => (
-          <div key={wIdx} className="inline-flex whitespace-nowrap">
-            {word.segments.map((seg, sIdx) => (
-              <div key={sIdx} className="inline-flex flex-col">
-                {showChords && (
-                  <div 
-                    onClick={() => seg.chord && onChordClick?.(seg.chord)}
-                    className={cn(
-                      "h-[1.2em] font-bold text-orange-500 font-mono whitespace-pre transition-colors",
-                      seg.chord ? "cursor-pointer hover:text-orange-400 underline decoration-orange-500/30 underline-offset-4" : ""
-                    )}
-                    style={{ fontSize: fontSize * 0.8 }}
-                  >
-                    {seg.chord || '\u00A0'}
-                  </div>
-                )}
-                <div 
-                  className="text-white font-mono whitespace-pre" 
-                  style={{ fontSize }}
-                >
-                  {seg.text}
-                </div>
-              </div>
-            ))}
+        {chunks.map((chunk, chunkIdx) => (
+          <div key={chunkIdx} className="inline-flex flex-col items-start align-bottom leading-tight">
+            {chunk.chord && (
+              <span 
+                onClick={() => onChordClick?.(chunk.chord!)}
+                className="text-sky-400 font-bold hover:text-sky-300 underline decoration-sky-400/30 underline-offset-4 cursor-pointer mb-0.5"
+              >
+                {chunk.chord}
+              </span>
+            )}
+            <span className="text-zinc-900 dark:text-white whitespace-pre transition-colors">
+              {chunk.text || '\u00A0'}
+            </span>
           </div>
         ))}
       </div>
@@ -160,7 +132,7 @@ export const ChordRenderer: React.FC<ChordRendererProps> = ({
   };
 
   return (
-    <div className={cn("w-full max-w-full overflow-x-hidden", className)}>
+    <div className={cn("w-full max-w-full", className)}>
       {parsedLines.map((line, index) => renderLine(line, index))}
     </div>
   );

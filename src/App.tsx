@@ -607,7 +607,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-full bg-black overflow-hidden font-sans select-none">
+    <div className="h-screen h-[100dvh] w-full bg-zinc-50 dark:bg-black overflow-hidden font-sans select-none fixed inset-0 theme-transition">
       <ShowMode 
         active={isShowMode}
         songs={activeSetlist ? songs.filter(s => activeSetlist.songIds.includes(s.id)) : songs}
@@ -632,6 +632,7 @@ export default function App() {
               onSelectSetlist={handleSelectSetlist}
               onStartSetlistShow={handleStartSetlistShow}
               onAddSong={() => setIsImporting(true)}
+              onSaveSong={handleAddSong}
               onToggleFavorite={handleToggleFavorite}
               onAddToSetlist={handleAddSongToSetlist}
               onCreateSetlist={handleCreateSetlist}

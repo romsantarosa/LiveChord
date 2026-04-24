@@ -31,7 +31,7 @@ export const ChordBar: React.FC<ChordBarProps> = ({
               onClick={() => onSetInstrumentPreference('guitar')}
               className={cn(
                 "flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all",
-                instrumentPreference === 'guitar' ? "bg-orange-500 text-black" : "bg-zinc-800 text-zinc-500 hover:text-white"
+                instrumentPreference === 'guitar' ? "bg-sky-400 text-black" : "bg-zinc-800 text-zinc-500 hover:text-white"
               )}
             >
               <Music size={10} className="sm:size-3" />
@@ -41,7 +41,7 @@ export const ChordBar: React.FC<ChordBarProps> = ({
               onClick={() => onSetInstrumentPreference('piano')}
               className={cn(
                 "flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all",
-                instrumentPreference === 'piano' ? "bg-orange-500 text-black" : "bg-zinc-800 text-zinc-500 hover:text-white"
+                instrumentPreference === 'piano' ? "bg-sky-400 text-black" : "bg-zinc-800 text-zinc-500 hover:text-white"
               )}
             >
               <PianoIcon size={10} className="sm:size-3" />
@@ -75,7 +75,7 @@ export const ChordBar: React.FC<ChordBarProps> = ({
             return (
               <div 
                 key={chord} 
-                className="flex flex-col items-center gap-1.5 sm:gap-2 bg-black/40 p-2 sm:p-3 rounded-xl sm:rounded-2xl border border-zinc-800/50 min-w-[70px] sm:min-w-[80px] cursor-pointer hover:border-orange-500/30 transition-colors"
+                className="flex flex-col items-center gap-1.5 sm:gap-2 bg-black/40 p-2 sm:p-3 rounded-xl sm:rounded-2xl border border-zinc-800/50 min-w-[70px] sm:min-w-[80px] cursor-pointer hover:border-sky-400/30 transition-colors"
                 onClick={() => onSelectChord(chord)}
               >
                 <span className="text-xs sm:text-sm font-black text-white">{chord}</span>

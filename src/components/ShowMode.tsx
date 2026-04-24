@@ -148,7 +148,7 @@ export default function ShowMode({ songs, initialSongIndex = 0, onClose, active 
       >
         <div 
           ref={scrollRef}
-          className="h-full overflow-y-auto px-6 py-12 scrollbar-hide"
+          className="h-full overflow-y-auto px-4 sm:px-6 py-12 scrollbar-hide"
         >
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
@@ -208,7 +208,7 @@ export default function ShowMode({ songs, initialSongIndex = 0, onClose, active 
             >
               <button 
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
-                className="p-2.5 md:p-3 bg-zinc-900/80 backdrop-blur-md rounded-xl text-orange-500 border border-white/10 shadow-xl hover:bg-zinc-800 transition-colors"
+                className="p-2.5 md:p-3 bg-zinc-900/80 backdrop-blur-md rounded-xl text-sky-400 border border-white/10 shadow-xl hover:bg-zinc-800 transition-colors"
               >
                 <X size={24} />
               </button>
@@ -227,7 +227,7 @@ export default function ShowMode({ songs, initialSongIndex = 0, onClose, active 
                 <div className="flex flex-col gap-1">
                   <div className="flex justify-between items-center">
                     <span className="text-[8px] font-black uppercase tracking-widest text-zinc-500">Velocidade</span>
-                    <span className="text-sm font-mono font-black text-orange-500">{scrollSpeed}</span>
+                    <span className="text-sm font-mono font-black text-sky-400">{scrollSpeed}</span>
                   </div>
                   <input 
                     type="range"
@@ -235,7 +235,7 @@ export default function ShowMode({ songs, initialSongIndex = 0, onClose, active 
                     max="20"
                     value={scrollSpeed}
                     onChange={(e) => setScrollSpeed(parseInt(e.target.value))}
-                    className="w-full h-1.5 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-orange-500"
+                    className="w-full h-1.5 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-sky-400"
                   />
                 </div>
                 <div className="flex flex-col gap-1">

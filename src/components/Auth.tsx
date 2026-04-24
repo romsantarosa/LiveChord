@@ -68,15 +68,15 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4 sm:p-6">
+    <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center p-4 sm:p-6 transition-colors theme-transition">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8 sm:mb-12">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-500 rounded-2xl sm:rounded-[2rem] flex items-center justify-center mb-4 sm:mb-6 shadow-[0_20px_50px_rgba(249,115,22,0.3)]">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-sky-400 rounded-2xl sm:rounded-[2rem] flex items-center justify-center mb-4 sm:mb-6 shadow-[0_20px_50px_rgba(56,189,248,0.3)]">
             <Music size={32} className="text-black sm:size-[40px]" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">
-            <span className="text-orange-500">Live</span>
-            <span className="text-white">Chord</span>
+            <span className="text-sky-400">Live</span>
+            <span className="text-zinc-900 dark:text-white transition-colors">Chord</span>
           </h1>
           <p className="text-zinc-500 font-bold uppercase tracking-[0.2em] text-[8px] sm:text-[10px] mt-2">
             {isLogin ? 'Bem-vindo de volta' : 'Crie sua conta'}
@@ -86,36 +86,36 @@ export default function Auth() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <div className="relative">
-              <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={20} />
+              <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" size={20} />
               <input
                 type="text"
                 placeholder="Nome Completo"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500 transition-colors"
+                className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-sky-400 transition-colors shadow-sm"
                 required
               />
             </div>
           )}
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={20} />
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" size={20} />
             <input
               type="email"
               placeholder="E-mail"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500 transition-colors"
+              className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-sky-400 transition-colors shadow-sm"
               required
             />
           </div>
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={20} />
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" size={20} />
             <input
               type="password"
               placeholder="Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500 transition-colors"
+              className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-sky-400 transition-colors shadow-sm"
               required
             />
           </div>
@@ -127,7 +127,7 @@ export default function Auth() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-orange-500 text-black font-black py-4 rounded-2xl uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_10px_30px_rgba(249,115,22,0.2)] disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-sky-400 text-black font-black py-4 rounded-2xl uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_10px_30px_rgba(56,189,248,0.2)] disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={20} />
@@ -138,10 +138,10 @@ export default function Auth() {
 
           <div className="relative py-4">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-zinc-800"></div>
+              <div className="w-full border-t border-zinc-200 dark:border-zinc-800"></div>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-black px-4 text-zinc-500 font-bold tracking-widest">ou entre com</span>
+            <div className="relative flex justify-center text-[8px] uppercase">
+              <span className="bg-zinc-50 dark:bg-black px-4 text-zinc-400 dark:text-zinc-600 font-black tracking-widest transition-colors">ou entre com</span>
             </div>
           </div>
 
@@ -150,7 +150,7 @@ export default function Auth() {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="flex items-center justify-center bg-zinc-900 border border-zinc-800 rounded-2xl py-4 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+              className="flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl py-4 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all disabled:opacity-50 shadow-sm"
               title="Google"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -180,26 +180,26 @@ export default function Auth() {
               type="button"
               onClick={handleAppleSignIn}
               disabled={loading}
-              className="flex items-center justify-center bg-zinc-900 border border-zinc-800 rounded-2xl py-4 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+              className="flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl py-4 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 shadow-sm"
               title="Apple"
             >
-              <Apple className="w-5 h-5 text-white" />
+              <Apple className="w-5 h-5 text-zinc-900 dark:text-white" />
             </button>
             <button
               type="button"
               onClick={handlePhoneSignIn}
               disabled={loading}
-              className="flex items-center justify-center bg-zinc-900 border border-zinc-800 rounded-2xl py-4 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+              className="flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl py-4 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 shadow-sm"
               title="Telefone"
             >
-              <Phone className="w-5 h-5 text-white" />
+              <Phone className="w-5 h-5 text-zinc-900 dark:text-white" />
             </button>
           </div>
         </form>
 
         <button
           onClick={() => setIsLogin(!isLogin)}
-          className="w-full mt-8 text-zinc-500 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors"
+          className="w-full mt-8 text-zinc-500 dark:text-zinc-600 text-[10px] font-black uppercase tracking-widest hover:text-zinc-900 dark:hover:text-white transition-all"
         >
           {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre aqui'}
         </button>

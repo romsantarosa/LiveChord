@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import YouTube from 'react-youtube';
 import { Song } from '../types';
 import { cn } from '../lib/utils';
+import { useSettings } from '../contexts/SettingsContext';
 import { parseSong, convertToChordPro } from '../lib/parser';
 import { transposeSong } from '../lib/transpose';
 import ChordVisualizer from './ChordVisualizer';
@@ -38,11 +39,17 @@ export default function SongViewer({
   isActive = true,
   isColumnMode = false
 }: SongViewerProps) {
+  const { fontType } = useSettings();
+
   // 1) PROTEGER CONTEÚDO
   if (!song || !song.content) {
     return (
-      <div style={{ color: 'white', padding: 20, background: 'black', minHeight: '100vh' }}>
-        Música sem conteúdo
+      <div className="bg-zinc-50 dark:bg-black text-zinc-900 dark:text-white p-5 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Music size={48} className="mx-auto mb-4 text-zinc-300 dark:text-zinc-800" />
+          <p className="font-bold uppercase tracking-widest text-xs text-zinc-400">Música sem conteúdo</p>
+          <button onClick={onBack} className="mt-6 text-sky-400 text-sm font-bold hover:underline">Voltar</button>
+        </div>
       </div>
     );
   }
@@ -106,9 +113,10 @@ export default function SongViewer({
 
   return (
     <div className={cn(
-      "bg-black flex flex-col overflow-hidden",
+      "bg-zinc-50 dark:bg-black flex flex-col overflow-hidden theme-transition",
       !isActive && "pointer-events-none",
-      "absolute inset-0"
+      "absolute inset-0",
+      `font-${fontType}`
     )}>
       <AnimatePresence>
         {!hideControls && (
@@ -177,7 +185,7 @@ export default function SongViewer({
         <div 
           ref={scrollRef}
           className={cn(
-            "flex-1 overflow-y-auto p-6 scroll-smooth",
+            "flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth",
             isColumnMode && "overflow-hidden h-full"
           )}
           style={{ scrollbarWidth: 'none' }}
@@ -193,7 +201,7 @@ export default function SongViewer({
                   <span className="text-[10px] text-zinc-600">Dica: Use [C] para acordes sobre a letra</span>
                 </div>
                 <textarea
-                  className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 text-white font-mono text-lg min-h-[70vh] focus:ring-2 focus:ring-orange-500/50 outline-none resize-none"
+                  className="w-full bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 text-zinc-900 dark:text-white font-mono text-lg min-h-[70vh] focus:ring-2 focus:ring-sky-400/50 outline-none resize-none transition-all shadow-sm"
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
                   placeholder="Digite a letra e os acordes aqui..."
@@ -203,7 +211,7 @@ export default function SongViewer({
               <>
                 {/* 6) GARANTIR RENDERIZAÇÃO - Fallback se ChordRenderer falhar */}
                 {parsed.length === 0 ? (
-                  <div style={{ color: 'white', whiteSpace: 'pre-wrap' }}>{transposedContent}</div>
+                  <div className="text-zinc-900 dark:text-white whitespace-pre-wrap">{transposedContent}</div>
                 ) : (
                   <ChordRenderer 
                     content={song.content}

@@ -1,18 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700;800&family=Playfair+Display:wght@700;900&family=Outfit:wght@400;700;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-inter: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-serif: "Playfair Display", ui-serif, system-ui, serif;
+  --font-classic: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --breakpoint-xs: 400px;
 }
+
+@variant dark (&:where(.dark, .dark *));
 
 @layer base {
   html, body, #root {
-    @apply h-full overflow-hidden bg-black;
+    @apply h-full overflow-x-hidden overflow-y-hidden transition-colors duration-300;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+    width: 100%;
+    position: fixed;
   }
 
+  body {
+    @apply bg-zinc-50 dark:bg-black text-zinc-900 dark:text-white font-sans;
+  }
+
+  /* Font settings applied via context classes */
+  .font-inter { font-family: var(--font-inter); }
+  .font-mono { font-family: var(--font-mono); }
+  .font-serif { font-family: var(--font-serif); }
+  .font-classic { font-family: var(--font-classic); }
+
+  /* iOS-like button feedback */
+  button:active {
+    opacity: 0.7;
+    transform: scale(0.97);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
   /* Hide scrollbars for a cleaner look, especially on mobile */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
@@ -20,5 +44,12 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* Theme transition helper */
+  .theme-transition {
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
